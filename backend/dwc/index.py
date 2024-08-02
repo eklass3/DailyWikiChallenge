@@ -15,6 +15,8 @@ maxResultSet = 50 #Max number of results from search set.
 def generate():
     searchData = getArticles(random.choice(string.ascii_letters) + random.choice(string.ascii_letters))#Get articles from Wikipedia, based on a random search
     imgSource = ""
+    imgHeight = 0
+    imgWidth = 0
   # Keep trying until we get an image
     while True:
         pageid = searchData["query"]["search"][random.randint(0, maxResultSet-1)]["pageid"]
@@ -23,6 +25,8 @@ def generate():
 
         # Use dict.get method to avoid KeyError if 'thumbnail' or 'source' is not present
         imgSource = imageData["query"]["pages"][str(pageid)].get("thumbnail", {}).get("source")
+        imgHeight = imageData["query"]["pages"][str(pageid)].get("thumbnail", {}).get("height")
+        imgWidth = imageData["query"]["pages"][str(pageid)].get("thumbnail", {}).get("width")
 
         if imgSource is not None:
             break
@@ -61,8 +65,7 @@ def generate():
     responseDict = {
         "answer": answer,
         "details": json.loads(repair_json(details)),
-        "img": imgSource
-
+        "img": {"source": imgSource, "height": imgHeight, "width": imgWidth}
     }
     
     return str(responseDict)
