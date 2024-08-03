@@ -38,7 +38,7 @@ def generate():
     example_json = {
         "question": "",
         "category": "",
-        "fun-fact": "",
+        "funFact": "",
         "hints": {
             "hint1": "",
             "hint2": "",
@@ -60,16 +60,22 @@ def generate():
 
         details = details.choices[0].message.content
 
+
         if repair_json(details) != "":
             break
 
+    jsonDetails = json.loads(repair_json(details));
+    jsonDetails["hints"]["hint1"] = jsonDetails["hints"]["hint1"].replace(" " + answer + " ", " ______ ")
+    jsonDetails["hints"]["hint2"] = jsonDetails["hints"]["hint2"].replace(" " + answer + " ", " ______ ")
+    jsonDetails["hints"]["hint3"] = jsonDetails["hints"]["hint3"].replace(" " + answer + " ", " ______ ")
+
     responseDict = {
         "answer": answer,
-        "details": json.loads(repair_json(details)),
+        "details": jsonDetails,
         "img": {"source": imgSource, "height": imgHeight, "width": imgWidth}
     }
     
-    return str(responseDict)
+    return responseDict
 #Get Wikipedia articles
 def getArticles(seed):
     params = {

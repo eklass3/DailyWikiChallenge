@@ -1,36 +1,14 @@
 'use client';
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AnswerBar from './answerbar';
 import { title } from "process";
+import axios from 'axios';
 
 const date = new Date();
 const day = date.getDate();
 const month = date.toLocaleString('default', { month: 'long' });
 const year = date.getFullYear();
-
-const question = {
-  'answer': 'George V', 
-  'fun-fact': 'George also liked playing Minecraft in his free time. He was a top 10 all-time player of Super-Smash-Mobs on Mineplex.',
-  'details': 
-    {'question': 
-      'Who was the King of the United Kingdom and Emperor of India from 1910 until his death in 1936?', 
-      'category': 'British History', 
-      'hints': 
-        {'hint1': 
-          "He was born as the second son of the Prince and Princess of Wales and became king-emperor after his father's death.", 
-          'hint2': 'He was the first monarch of the House of Windsor, which he renamed from the House of Saxe-Coburg and Gotha due to anti-German public sentiment.', 
-          'hint3': 'He suffered from smoking-related health problems during his later reign and was succeeded by his eldest son, Edward VIII, who later abdicated.'
-        }, 
-      'difficulty': 
-      'medium'
-    }, 
-    'img': 
-      { 'source': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/King_George_1923_LCCN2014715558_%28cropped%29.jpg/500px-King_George_1923_LCCN2014715558_%28cropped%29.jpg', 
-        'height': 705, 
-        'width': 500
-      }
-}
 
 function calculateHeight(originalWidth: number, originalHeight: number): number {
   const newWidth: number = 250;
@@ -42,6 +20,33 @@ function calculateHeight(originalWidth: number, originalHeight: number): number 
 export default function Home() {
   const [hintLevel, setHintLevel] = useState(0);
   const [correctAnswer, setCorrectAnswer] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [question, setQuestion] = useState({
+    'answer': 'George V', 
+    'details': 
+      {'question': 
+        'Who was the King of the United Kingdom and Emperor of India from 1910 until his death in 1936?', 
+        'category': 'British History', 
+        'hints': 
+          {'hint1': 
+            "He was born as the second son of the Prince and Princess of Wales and became king-emperor after his father's death.", 
+            'hint2': 'He was the first monarch of the House of Windsor, which he renamed from the House of Saxe-Coburg and Gotha due to anti-German public sentiment.', 
+            'hint3': 'He suffered from smoking-related health problems during his later reign and was succeeded by his eldest son, Edward VIII, who later abdicated.'
+          }, 
+        'difficulty': 
+        'medium',
+        'funFact': 'George also liked playing Minecraft in his free time. He was a top 10 all-time player of Super-Smash-Mobs on Mineplex.',
+      }, 
+      'img': 
+        { 'source': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/King_George_1923_LCCN2014715558_%28cropped%29.jpg/500px-King_George_1923_LCCN2014715558_%28cropped%29.jpg', 
+          'height': 705, 
+          'width': 500
+        }
+});
+
+  useEffect(()=>{
+    loadQuestion();
+  }, [])
 
   const showHint = () => {
     setHintLevel(hintLevel + 1);
@@ -51,9 +56,16 @@ export default function Home() {
     setCorrectAnswer(value === question.answer);
   }
 
-  const loadQuestion = () => {
-    
-  }
+  const loadQuestion = async () => {
+    try {
+      const res = await axios.get(`./api/question`);
+      console.log(res.data);
+      setQuestion(res.data);
+      setLoading(false);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
     <main className="container">
@@ -64,6 +76,8 @@ export default function Home() {
         <div className="line"/>
         <p className="date">{`${day} ${month} ${year}`}</p>
         <div className="light-line"></div>
+        {loading && <p>Loading Question...</p>}
+        {!loading &&
         <div className="question-container">
           <p>{question.details.question}</p>
           {hintLevel < 3 && <button className="link-button" onClick={showHint}>Hint ({3-hintLevel})</button>}
@@ -84,7 +98,7 @@ export default function Home() {
                 <div className="highlighter">
                   <p style={{marginTop: 5, marginBottom: 5}}><b>Correct!</b></p>
                 </div>
-                <p><b>Fun-Fact: </b>{question["fun-fact"]}</p>
+                <p><b>Fun-Fact: </b>{question.details.funFact}</p>
                 <a href={`https://en.wikipedia.org/wiki/${question.answer.replace(/ /g, "_")}`} target="_blank"><p>Read More</p></a>
                 <button 
           style={{
@@ -99,13 +113,19 @@ export default function Home() {
           }}
           onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
           onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-          onClick={()=>loadQuestion()}
+          onClick={()=>{
+            setLoading(true);
+            setHintLevel(0);
+            setCorrectAnswer(false);
+            loadQuestion();
+          }}
         >
           <b>Next Question</b>
         </button>
               </div>}
           </div>
         </div>
+        }
       </div>
     </main>
   );
