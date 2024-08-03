@@ -38,6 +38,7 @@ def generate():
     example_json = {
         "question": "",
         "category": "",
+        "fun-fact": "",
         "hints": {
             "hint1": "",
             "hint2": "",
@@ -46,7 +47,7 @@ def generate():
     }
     
     while True:#GPT question prompt.
-        prompt = "Write a trivia question and three progressively easier hints, where this is the answer " + answer + ". Do not include the answer in the question. Add the trivia category, and the difficulty of the question (easy, medium, hard). Here is some background info: " + data
+        prompt = "Write a trivia question and three progressively easier hints, where this is the answer " + answer + ". Do not include the answer in the question. Add the trivia category, a fun fact, and the difficulty of the question (easy, medium, hard). Here is some background info: " + data
 
         details = client.chat.completions.create(
             model="gpt-3.5-turbo",

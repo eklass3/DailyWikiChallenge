@@ -1,6 +1,8 @@
 'use client';
 import Image from "next/image";
 import { useState } from "react";
+import AnswerBar from './answerbar';
+import { title } from "process";
 
 const date = new Date();
 const day = date.getDate();
@@ -9,6 +11,7 @@ const year = date.getFullYear();
 
 const question = {
   'answer': 'George V', 
+  'fun-fact': 'George also liked playing Minecraft in his free time. He was a top 10 all-time player of Super-Smash-Mobs on Mineplex.',
   'details': 
     {'question': 
       'Who was the King of the United Kingdom and Emperor of India from 1910 until his death in 1936?', 
@@ -38,9 +41,18 @@ function calculateHeight(originalWidth: number, originalHeight: number): number 
 
 export default function Home() {
   const [hintLevel, setHintLevel] = useState(0);
+  const [correctAnswer, setCorrectAnswer] = useState(false);
 
   const showHint = () => {
     setHintLevel(hintLevel + 1);
+  }
+
+  const onAnswerSubmit = (value: string) => {
+    setCorrectAnswer(value === question.answer);
+  }
+
+  const loadQuestion = () => {
+    
   }
 
   return (
@@ -67,9 +79,31 @@ export default function Home() {
             />
           </div>
           <div className="content">
-            <p>
-              This is some sample content for the article. 
-            </p>
+              {!correctAnswer && <AnswerBar onAnswerSubmit={onAnswerSubmit}/>}
+              {correctAnswer && <div style={{display: "flex", flexDirection: "column", alignItems: "center"}}>
+                <div className="highlighter">
+                  <p style={{marginTop: 5, marginBottom: 5}}><b>Correct!</b></p>
+                </div>
+                <p><b>Fun-Fact: </b>{question["fun-fact"]}</p>
+                <a href={`https://en.wikipedia.org/wiki/${question.answer.replace(/ /g, "_")}`} target="_blank"><p>Read More</p></a>
+                <button 
+          style={{
+            backgroundColor: '#f8f9fa',
+            border: '1px solid #a2a9b1',
+            borderRadius: '2px',
+            padding: '10px 15px',
+            fontSize: '14px',
+            color: '#222',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s ease-in-out',
+          }}
+          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+          onClick={()=>loadQuestion()}
+        >
+          <b>Next Question</b>
+        </button>
+              </div>}
           </div>
         </div>
       </div>

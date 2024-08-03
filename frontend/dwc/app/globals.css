@@ -53,6 +53,7 @@ p {
 }
 
 .content {
+  width: 100%;
   text-align: justify;
 }
 
@@ -76,4 +77,35 @@ p {
 .link-button:focus {
   color: darkblue;
   text-decoration: none;
+}
+
+.search-hover-div {
+  padding: 5px;
+  transition: background-color 0.3s ease;
+}
+
+.search-hover-div:hover {
+  background-color: #f0f0f0; /* Change this to your preferred hover color */
+}
+
+.input-focus {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 2px;
+  font-family: Arial;
+  border: 1px solid #ccc;
+}
+
+.input-focus:focus {
+  outline: black;
+  box-shadow: 0 0 3px rgb(0, 0, 0);
+}
+
+.highlighter {
+  background-color: #ADDFAD;
+  width: 80%;
+  display: flex;
+  justify-content: center;
+  height: 25px;
 }
