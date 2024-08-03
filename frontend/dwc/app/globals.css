@@ -57,7 +57,7 @@ p {
   text-align: justify;
 }
 
-.date {
+.small-text {
   font-size: 14px;
   margin-top: 15px;
 }
@@ -102,10 +102,34 @@ p {
   box-shadow: 0 0 3px rgb(0, 0, 0);
 }
 
-.highlighter {
+.highlighter-correct {
   background-color: #ADDFAD;
   width: 80%;
   display: flex;
   justify-content: center;
   height: 25px;
+}
+
+.highlighter-incorrect {
+  background-color: #d2d0d0;
+  width: 80%;
+  display: flex;
+  justify-content: center;
+  height: 25px;
+}
+
+.highlighter-negative {
+  background-color: #f77979;
+  width: 80%;
+  display: flex;
+  justify-content: center;
+  height: 25px;
+}
+
+.hover-line {
+  visibility: hidden;
+}
+
+a:hover .hover-line {
+  visibility: visible;
 }
