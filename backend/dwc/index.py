@@ -9,21 +9,33 @@ app = Flask(__name__)
 client = Client()#GPT client
 
 wikiUrl = "https://en.wikipedia.org/w/api.php"#Wikipedia API URL
-maxResultSet = 50 #Max number of results from search set.
+maxResultSet = 100 #Max number of results from search set.
+
+catFood = ["Fast food", "Flavors of ice cream", "Types of food", "Fictional food and drink", "Staple foods", "Canadian beer brands", "Pizza", "Cakes", "Bagels"]
+
+catCountries =["Countries in Europe", "Countries in North America", "Countries in South America", "Countries in Africa", "Countries in Asia", "Countries in Oceania"]
 
 def hashed(seed):
     return hashlib.sha256(seed.encode()).hexdigest()
 
+def generate_random_string():
+    length = random.randint(0, 4)
+    letters = string.ascii_letters
+    result_str = ''.join(random.choice(letters) for _ in range(length))
+    return result_str
+
 #Generate question endpoint.
 @app.route('/generate', methods=['GET'])
 def generate():
-    searchData = getArticles(random.choice(string.ascii_letters) + random.choice(string.ascii_letters))#Get articles from Wikipedia, based on a random search
+    searchData = getArticlesTEST()#Get articles from Wikipedia, based on a random search
     imgSource = ""
     imgHeight = 0
     imgWidth = 0
   # Keep trying until we get an image
     while True:
-        pageid = searchData["query"]["search"][random.randint(0, maxResultSet-1)]["pageid"]
+        print(searchData)
+
+        pageid = searchData["query"]["categorymembers"][random.randint(0, len(searchData["query"]["categorymembers"])-1)]["pageid"]
 
         imageData = getImage(pageid)
 
@@ -51,7 +63,7 @@ def generate():
     }
     
     while True:#GPT question prompt.
-        prompt = "Write a trivia question and three progressively easier hints, where this is the answer " + answer + ". Do not include the answer in the question. Add the trivia category, a fun fact, and the difficulty of the question (easy, medium, hard). Here is some background info: " + data
+        prompt = "Write a trivia question and three progressively easier hints, where this is the answer " + answer + ". Do not say the answer in the question or hints. Add the trivia category, and a fun fact. If the answer is a type of list include \"(a list)\" in the question. Here is some background info: " + data
 
         details = client.chat.completions.create(
             model="gpt-3.5-turbo",
@@ -69,9 +81,6 @@ def generate():
             break
 
     jsonDetails = json.loads(repair_json(details));
-    jsonDetails["hints"]["hint1"] = jsonDetails["hints"]["hint1"].replace(" " + answer + " ", " ______ ")
-    jsonDetails["hints"]["hint2"] = jsonDetails["hints"]["hint2"].replace(" " + answer + " ", " ______ ")
-    jsonDetails["hints"]["hint3"] = jsonDetails["hints"]["hint3"].replace(" " + answer + " ", " ______ ")
 
     responseDict = {
         "answer": answer,
@@ -118,7 +127,7 @@ def seed_gen(seed):
     }
     
     while True:#GPT question prompt.
-        prompt = "Write a trivia question and three progressively easier hints, where this is the answer " + answer + ". Do not include the answer in the question. Add the trivia category, a fun fact, and the difficulty of the question (easy, medium, hard). Here is some background info: " + data
+        prompt = "Write a trivia question and three progressively easier hints. The answer to the question MUST clearly be " + answer + " (even if it is a sentence). Do not say the answer in the question or hints. Add the trivia category, and a fun fact. If the answer is a type of list include \"(a list)\" in the question. Here is some background info: " + data
 
         details = client.chat.completions.create(
             model="gpt-3.5-turbo",
@@ -136,9 +145,6 @@ def seed_gen(seed):
             break
 
     jsonDetails = json.loads(repair_json(details));
-    jsonDetails["hints"]["hint1"] = jsonDetails["hints"]["hint1"].replace(" " + answer + " ", " ______ ")
-    jsonDetails["hints"]["hint2"] = jsonDetails["hints"]["hint2"].replace(" " + answer + " ", " ______ ")
-    jsonDetails["hints"]["hint3"] = jsonDetails["hints"]["hint3"].replace(" " + answer + " ", " ______ ")
 
     responseDict = {
         "answer": answer,
@@ -160,6 +166,21 @@ def getArticles(seed):
     "srqiprofile": "popular_inclinks_pv",
     "srlimit": maxResultSet
     }   
+
+    response = requests.get(wikiUrl, params=params)
+    data = response.json()
+    return data
+
+#Get Wikipedia articles
+def getArticlesTEST():
+    params = {
+        "action": "query",
+        "format": "json",
+        "list": "categorymembers",
+        "cmtitle": "Category:Countries in Europe",
+        "cmlimit": 50
+    }   
+
     response = requests.get(wikiUrl, params=params)
     data = response.json()
     return data

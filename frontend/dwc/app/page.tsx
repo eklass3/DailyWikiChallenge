@@ -198,7 +198,7 @@ function getFormattedSeedDate(): string {
   }
 
   const onAnswerSubmit = (value: string) => {
-    if (value === question.answer) {//If the answer is correct.
+    if (value.toLowerCase().trim() === question.answer.toLowerCase()) {//If the answer is correct.
       setAnswerState(1);//Set answer state to correct.
 
         const stateInfo = localStorage.getItem("stateInfo");

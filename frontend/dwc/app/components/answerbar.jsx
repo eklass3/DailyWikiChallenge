@@ -7,12 +7,10 @@ export default function AnswerBar({onAnswerSubmit}) {
   const [selected, setSelected] = useState(false);
 
   useEffect(() => {
-    console.log(input);
     if (input) {
       axios.get(`./api/search?search=${input}`)
         .then(res => { 
           setRecommendations(res.data.query.search);
-          console.log(recommendations);
         })
         .catch(err => {
           console.error(err);

@@ -66,7 +66,7 @@ export default function Home() {
   }
 
   const onAnswerSubmit = (value: string) => {
-    if (value === question.answer) {
+    if (value.toLowerCase().trim() === question.answer.toLowerCase()) {
       setAnswerState(1);
       setScore(score + scoreCalculator());
     } else {
@@ -129,7 +129,7 @@ export default function Home() {
                 <div className="highlighter-negative">
                   <p style={{marginTop: 5, marginBottom: 5}}><b>Game over!</b></p>
                 </div>
-                <p>The correct answer was: <b>{question.answer}</b><br/>Your score <b>⭐: </b>{score}</p>
+                <p>The correct answer was: <a href={`https://en.wikipedia.org/wiki/${question.answer.replace(/ /g, "_")}`} target="_blank">{question.answer}</a><br/>Your score <b>⭐: </b>{score}</p>
                 <button 
           style={{
             backgroundColor: '#f8f9fa',
