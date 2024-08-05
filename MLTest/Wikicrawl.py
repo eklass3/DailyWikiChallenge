@@ -1,7 +1,7 @@
 import json, requests, random, string
 wikiUrl = "https://en.wikipedia.org/w/api.php"#Wikipedia API URL
 
-percentageOfTopCategories = 0.25
+percentageOfTopCategories = 0.50
 chanceOfSelectingExistingCategory = 0.8
 
 
@@ -124,10 +124,9 @@ def getRelatedArticle(startingArt):
 
     randomParCat = random.choice(jParCats)
     data = getArticles(randomParCat["title"])
-  
+    print("TESTING NEW CATEGORY")
     return {"category": randomParCat["title"], "article": random.choice(data["query"]["categorymembers"])["title"]}
     
-
 
 with open('catModel.json', 'r') as f:
     catModel = json.load(f)
@@ -137,12 +136,12 @@ with open('rightAnswersQueue.json', 'r') as fa:
 
 # Sort categories by score and select the top 75%
 catModel.sort(key=lambda x: x['avgScore'], reverse=True)
-top_cats = catModel[:int(len(catModel) * percentageOfTopCategories)]
+topCats = catModel[:int(len(catModel) * percentageOfTopCategories)]
 
 quizCategory = ""
 article = ""
 if (percentRandom(chanceOfSelectingExistingCategory)):
-    quizCategory = random.choice(catModel)["category"]
+    quizCategory = random.choice(topCats)["category"]
     data = getArticles(quizCategory)
     article = random.choice(data["query"]["categorymembers"])["title"]
     print(article)
@@ -153,6 +152,8 @@ else:
     quizCategory = data["category"]
     
 score = random.randint(0, 10)
+
+print(quizCategory)
 
 if score > 3:
     answersQueue.append(article)
@@ -171,5 +172,4 @@ else:
 
 with open('catModel.json', 'w') as f:
     json.dump(catModel, f)
-
 

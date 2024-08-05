@@ -65,6 +65,7 @@ export default function Home() {
       const lastDC = jStateInfo.lastDC;
       setScore(jStateInfo.score);//The score has not changed. Set score.
 
+      console.log("STATE INFO " + stateInfo);
       let tempStreak = 0;
       let tempAnswerState = 0;
       let tempHintLevel = 0;
@@ -230,6 +231,8 @@ function getFormattedSeedDate(): string {
     
           localStorage.setItem("stateInfo", JSON.stringify(newStateInfo));
 
+          console.log("NEW STATE INFO " + JSON.stringify(newStateInfo));
+
       }
       
     } else {
@@ -272,6 +275,7 @@ function getFormattedSeedDate(): string {
           {hintLevel >= 1 && <p><b>Hint 1:</b> {question.details.hints.hint1}</p>}
           {hintLevel >= 2 && <p><b>Hint 2:</b> {question.details.hints.hint2}</p>}
           {hintLevel >= 3 && <p><b>Hint 3:</b> {question.details.hints.hint3}</p>}
+          {question.img.source !== null &&
           <div className="image-container">
             <Image 
               src={question.img.source} 
@@ -279,7 +283,7 @@ function getFormattedSeedDate(): string {
               width={250}
               height={calculateHeight(question.img.width, question.img.height)}
             />
-          </div>
+          </div>}
           <div className="content">
               {answerState !== 1 && <AnswerBar onAnswerSubmit={onAnswerSubmit}/>}
               {answerState === -1 && <div style={{display: "flex", flexDirection: "column", alignItems: "center", marginTop: 15}}>

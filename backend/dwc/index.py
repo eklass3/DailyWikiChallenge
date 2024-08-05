@@ -1,6 +1,7 @@
 from flask import Flask, request
 from g4f.client import Client
 from json_repair import repair_json
+from datetime import datetime, timedelta
 import json, requests, random, string
 import hashlib
 
@@ -11,12 +12,16 @@ client = Client()#GPT client
 wikiUrl = "https://en.wikipedia.org/w/api.php"#Wikipedia API URL
 maxResultSet = 100 #Max number of results from search set.
 
-catFood = ["Fast food", "Flavors of ice cream", "Types of food", "Fictional food and drink", "Staple foods", "Canadian beer brands", "Pizza", "Cakes", "Bagels"]
+chanceOfSelectingExistingCategory = 0.5
 
-catCountries =["Countries in Europe", "Countries in North America", "Countries in South America", "Countries in Africa", "Countries in Asia", "Countries in Oceania"]
+def stringToNumber(seed, limit):
+    # Get the hash of the string
+    hashed_seed = hash(seed)
 
-def hashed(seed):
-    return hashlib.sha256(seed.encode()).hexdigest()
+    # Convert the hash to a number between 0 and limit
+    number = hashed_seed % limit
+
+    return number
 
 def generate_random_string():
     length = random.randint(0, 4)
@@ -24,92 +29,109 @@ def generate_random_string():
     result_str = ''.join(random.choice(letters) for _ in range(length))
     return result_str
 
+def percentRandom(percentage):
+    return random.random() < percentage
+
+def removeItemsWithColon(json_array):
+    # Use a list comprehension to filter out items with a colon in the "article" parameter
+    filtered_json_array = [item for item in json_array if ":" not in item["article"]]
+    return filtered_json_array
+
 #Generate question endpoint.
-@app.route('/generate', methods=['GET'])
-def generate():
-    searchData = getArticlesTEST()#Get articles from Wikipedia, based on a random search
-    imgSource = ""
-    imgHeight = 0
-    imgWidth = 0
-  # Keep trying until we get an image
-    while True:
-        print(searchData)
+@app.route('/generate/<string:category>/<string:recentArticle>', methods=['GET'])
+def generate(category, recentArticle):
 
-        pageid = searchData["query"]["categorymembers"][random.randint(0, len(searchData["query"]["categorymembers"])-1)]["pageid"]
+    try:
+        quizCategory = ""
+        article = {"title": "", "pageid": 0}
+        if (percentRandom(chanceOfSelectingExistingCategory)):
+            quizCategory = category
+            data = getArticles(quizCategory)
+            art = random.choice(data["query"]["categorymembers"])
+            article["title"] = art["title"]
+            article["pageid"] = art["pageid"]
+        else:
+            data = getRelatedArticle(recentArticle)
+            article = {"title": data["article"], "pageid": data["pageid"]}
+            quizCategory = data["category"] 
 
-        imageData = getImage(pageid)
 
+        imageData = getThumbnailImage(article["pageid"])
+        print(imageData)
         # Use dict.get method to avoid KeyError if 'thumbnail' or 'source' is not present
-        imgSource = imageData["query"]["pages"][str(pageid)].get("thumbnail", {}).get("source")
-        imgHeight = imageData["query"]["pages"][str(pageid)].get("thumbnail", {}).get("height")
-        imgWidth = imageData["query"]["pages"][str(pageid)].get("thumbnail", {}).get("width")
+        imgSource = imageData["query"]["pages"][str(article["pageid"])].get("thumbnail", {}).get("source")
+        imgHeight = imageData["query"]["pages"][str(article["pageid"])].get("thumbnail", {}).get("height")
+        imgWidth = imageData["query"]["pages"][str(article["pageid"])].get("thumbnail", {}).get("width")
 
-        if imgSource is not None:
-            break
 
-    articleData = getData(pageid)
-    data = articleData["query"]["pages"][str(pageid)]["extract"]
-    answer = articleData["query"]["pages"][str(pageid)]["title"]
+        articleData = getData(article["pageid"])
+        data = articleData["query"]["pages"][str(article["pageid"])]["extract"]
+        answer = article["title"]
 
-    example_json = {
-        "question": "",
-        "category": "",
-        "funFact": "",
-        "hints": {
-            "hint1": "",
-            "hint2": "",
-            "hint3": "",
+        example_json = {
+            "question": "",
+            "funFact": "",
+            "hints": {
+                "hint1": "",
+                "hint2": "",
+                "hint3": "",
+            }
         }
-    }
-    
-    while True:#GPT question prompt.
-        prompt = "Write a trivia question and three progressively easier hints, where this is the answer " + answer + ". Do not say the answer in the question or hints. Add the trivia category, and a fun fact. If the answer is a type of list include \"(a list)\" in the question. Here is some background info: " + data
+        
+        while True:#GPT question prompt.
+            prompt = "Write a trivia question and three progressively easier hints, where this is the answer " + answer + ". Do not say the answer in the question or hints. Add the trivia category, and a fun fact. Here is some background info: " + data
 
-        details = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            response_format={"type":"json_object"},
-            messages=[
-                {"role":"system", "content": "Provide output in valid JSON and in English. The data schema should be like this: " + json.dumps(example_json)},
-                {"role": "user", "content": prompt}
-            ]
-        )
+            details = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                response_format={"type":"json_object"},
+                messages=[
+                    {"role":"system", "content": "Provide output in valid JSON and in English. The data schema should be like this: " + json.dumps(example_json)},
+                    {"role": "user", "content": prompt}
+                ]
+            )
 
-        details = details.choices[0].message.content
+            details = details.choices[0].message.content
 
 
-        if repair_json(details) != "":
-            break
+            if repair_json(details) != "":
+                break
 
-    jsonDetails = json.loads(repair_json(details));
+        jsonDetails = json.loads(repair_json(details));
 
-    responseDict = {
-        "answer": answer,
-        "details": jsonDetails,
-        "img": {"source": imgSource, "height": imgHeight, "width": imgWidth}
-    }
-    
-    return responseDict
+        responseDict = {
+            "answer": answer,
+            "category": quizCategory,
+            "details": jsonDetails,
+            "img": {"source": imgSource, "height": imgHeight, "width": imgWidth}
+        }
+
+        #print(responseDict)
+        if (len(jsonDetails) > 0 and (":" not in answer)):
+            return responseDict
+        else:
+            return generate(category, recentArticle)
+        
+    except KeyError:
+        return generate(category, recentArticle)
 
 #Generate question endpoint.
 @app.route('/seed_gen/<string:seed>', methods=['GET'])
 def seed_gen(seed):
-    searchData = getArticles(hashed(seed)[0] + hashed(seed)[1])#Get articles from Wikipedia, based on a random search
+    popArticle = getPopularArticle(seed)#Get articles from Wikipedia, based on a random search
     imgSource = ""
     imgHeight = 0
     imgWidth = 0
-  # Keep trying until we get an image
-    while True:
-        pageid = searchData["query"]["search"][int(hashed(seed), 16) % maxResultSet]["pageid"]
 
-        imageData = getImage(pageid)
+    data = getPageID(popArticle["article"])
+    # Navigate to the pageid field
+    pageid = next(iter(data["query"]["pages"].values()))["pageid"]
 
-        # Use dict.get method to avoid KeyError if 'thumbnail' or 'source' is not present
-        imgSource = imageData["query"]["pages"][str(pageid)].get("thumbnail", {}).get("source")
-        imgHeight = imageData["query"]["pages"][str(pageid)].get("thumbnail", {}).get("height")
-        imgWidth = imageData["query"]["pages"][str(pageid)].get("thumbnail", {}).get("width")
-
-        if imgSource is not None:
-            break
+    imageData = getThumbnailImage(pageid)
+    print(imageData)
+    # Use dict.get method to avoid KeyError if 'thumbnail' or 'source' is not present
+    imgSource = imageData["query"]["pages"][str(pageid)].get("thumbnail", {}).get("source")
+    imgHeight = imageData["query"]["pages"][str(pageid)].get("thumbnail", {}).get("height")
+    imgWidth = imageData["query"]["pages"][str(pageid)].get("thumbnail", {}).get("width")
 
     articleData = getData(pageid)
     data = articleData["query"]["pages"][str(pageid)]["extract"]
@@ -127,7 +149,7 @@ def seed_gen(seed):
     }
     
     while True:#GPT question prompt.
-        prompt = "Write a trivia question and three progressively easier hints. The answer to the question MUST clearly be " + answer + " (even if it is a sentence). Do not say the answer in the question or hints. Add the trivia category, and a fun fact. If the answer is a type of list include \"(a list)\" in the question. Here is some background info: " + data
+        prompt = "Write a trivia question and three progressively easier hints. The answer to the question MUST clearly be " + answer + " (even if it is a sentence). Do not say the answer in the question or hints. Add the trivia category, and a fun fact. Here is some background info: " + data
 
         details = client.chat.completions.create(
             model="gpt-3.5-turbo",
@@ -154,38 +176,87 @@ def seed_gen(seed):
     
     return responseDict
 
-#Get Wikipedia articles
-def getArticles(seed):
-    params = {
-    "action": "query",
-    "format": "json",
-    "list": "search",
-    "utf8": "1",
-    "formatversion": "2",
-    "srsearch": seed,
-    "srqiprofile": "popular_inclinks_pv",
-    "srlimit": maxResultSet
-    }   
-
-    response = requests.get(wikiUrl, params=params)
-    data = response.json()
-    return data
-
-#Get Wikipedia articles
-def getArticlesTEST():
+#Get Wikipedia articles for a given category
+def getArticles(category):
     params = {
         "action": "query",
         "format": "json",
         "list": "categorymembers",
-        "cmtitle": "Category:Countries in Europe",
-        "cmlimit": 50
+        "cmtitle": category,
+        "cmtype": "page",
+        "cmlimit": 500
     }   
 
     response = requests.get(wikiUrl, params=params)
     data = response.json()
     return data
-#Get image for particular article
-def getImage(pageid):
+
+import requests
+
+def getPopularArticle(seed):
+    current_date = datetime.now()
+    # Subtract one day
+    one_day_ago = current_date - timedelta(days=1)  
+
+    strYesterday = one_day_ago.strftime('%Y/%m/%d')
+    url = "https://wikimedia.org/api/rest_v1/metrics/pageviews/top/en.wikipedia.org/all-access/" + strYesterday
+    
+    headers = {
+        "User-Agent": "eaklassen8",
+    }
+
+    response = requests.get(url, headers=headers)
+    print(response)
+    data = response.json()
+
+    # Get the list of articles
+    articles = data['items'][0]['articles']
+    articles = removeItemsWithColon(articles)
+
+    return articles[stringToNumber(seed, len(articles))]
+
+#Get Wikipedia parent category for a given category
+def getParent(category):
+    params = {
+        "action": "query",
+        "format": "json",
+        "prop": "categories",
+        "titles": category,
+        "clshow": "!hidden",
+        "cmlimit": 500
+    }   
+
+    response = requests.get(wikiUrl, params=params)
+    data = response.json()
+    return data
+
+#Get Wikipedia sub categories for a given category
+def getChild(category):
+    params = {
+        "action": "query",
+        "format": "json",
+        "list": "categorymembers",
+        "cmtitle": category,
+        "cmtype": "subcat"
+    }   
+
+    response = requests.get(wikiUrl, params=params)
+    data = response.json()
+    return data
+#Get Wikipedia pageid from page title
+def getPageID(pageTitle):
+    params = {
+        "action": "query",
+        "format": "json",
+        "prop": "info",
+        "titles": pageTitle,
+    }   
+
+    response = requests.get(wikiUrl, params=params)
+    data = response.json()
+    return data
+
+def getThumbnailImage(pageid):
     params = {
     "action": "query",
     "prop": "pageimages",
@@ -196,6 +267,7 @@ def getImage(pageid):
     response = requests.get(wikiUrl, params=params)
     data = response.json()
     return data
+
 #Get exerpt data for particular article
 def getData(pageid):
     params = {
@@ -210,3 +282,15 @@ def getData(pageid):
     response = requests.get(wikiUrl, params=params)
     data = response.json()
     return data
+
+def getRelatedArticle(startingArt):
+    parents = getParent(startingArt)["query"]["pages"]
+    startingArtId = list(parents.keys())[0]
+    jParCats = parents[startingArtId]["categories"]
+
+    randomParCat = random.choice(jParCats)
+    data = getArticles(randomParCat["title"])
+    art = random.choice(data["query"]["categorymembers"])
+    title = art["title"]
+    pageid = art["pageid"]
+    return {"category": randomParCat["title"], "article": title, "pageid": pageid}

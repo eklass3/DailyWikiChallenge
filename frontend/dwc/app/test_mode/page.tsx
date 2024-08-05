@@ -10,6 +10,27 @@ const day = date.getDate();
 const month = date.toLocaleString('default', { month: 'long' });
 const year = date.getFullYear();
 
+const initialCatModel = [{"category": "Category:Air Canada", "avgScore": 5}, 
+  {"category": "Category:Ferrari vehicles", "avgScore": 5}, 
+  {"category":"Category:Provinces and territories of Canada", "avgScore": 5},
+  {"category":"Category:States of the United States", "avgScore":5},
+  {"category":"Category:Member states of the United Nations", "avgScore": 5,},
+  {"category":"Category:Highest points of countries", "avgScore": 5},
+  {"category":"Category:Populated coastal places in Norway", "avgScore": 5},
+  {"category":"Category:Events in track and field", "avgScore": 5},
+  {"category":"Category:World Marathon Majors", "avgScore": 5},
+  {"category": "Category:Universities in Ontario", "avgScore": 5},
+  {"category":"Category:Ivy Plus universities", "avgScore": 5}
+]
+const initialAnswerModel = ["Lego", "Bergen", "Eric Clapton"]
+
+const percentageTopCat = 0.5
+
+let catModel = [{"category": "Air_Canada", "avgScore": 5}]
+let topCats;
+
+let answerModel = [""]
+
 function calculateHeight(originalWidth: number, originalHeight: number): number {
   const newWidth: number = 250;
   const ratio: number = originalHeight / originalWidth;
@@ -25,6 +46,7 @@ export default function Home() {
   const [hearts, setHearts] = useState(3);
   const [question, setQuestion] = useState({
     'answer': 'George V', 
+    'category': 'History',
     'details': 
       {'question': 
         'Who was the King of the United Kingdom and Emperor of India from 1910 until his death in 1936?', 
@@ -47,8 +69,28 @@ export default function Home() {
 });
 
   useEffect(()=>{
+    loadCatModel();
+    loadAnswerModel();
     loadQuestion();
   }, [])
+
+  const loadCatModel = () => {
+    const catModelData = localStorage.getItem("catModel")
+    if (catModelData !== null) {
+      catModel = JSON.parse(catModelData);
+    } else {
+      catModel = initialCatModel;
+    }
+  }
+
+  const loadAnswerModel = () => {
+    const answerModelData = localStorage.getItem("answerModel")
+    if (answerModelData !== null) {
+      answerModel = JSON.parse(answerModelData);
+    } else {
+      answerModel = initialAnswerModel;
+    }
+  }
 
   const showHint = () => {
     setHintLevel(hintLevel + 1);
@@ -77,7 +119,16 @@ export default function Home() {
 
   const loadQuestion = async () => {
     try {
-      const res = await axios.get(`./api/question_test`);
+      // Sort array in descending order based on avgScore
+      catModel.sort((a, b) => b.avgScore - a.avgScore);
+
+      // Select the top 25%
+      let topCats = catModel.slice(0, Math.ceil(catModel.length * percentageTopCat));
+      const category = topCats[Math.floor(Math.random() * topCats.length)].category;
+
+      const article = answerModel[Math.floor(Math.random() * answerModel.length)];
+
+      const res = await axios.get(`./api/question_test?category=${category}&article=${article}`);
       console.log(res.data);
       setQuestion(res.data);
       setLoading(false);
@@ -85,6 +136,57 @@ export default function Home() {
       console.error(err);
     }
   };
+
+  const updateModels = () => {
+    let score = 5;
+    switch (hintLevel) {
+      case 0:
+          if (answerState === 1)
+            score = 10;
+          else
+            score = 3;
+        break;
+      case 1:
+        if (answerState === 1)
+          score = 8;
+        else
+          score = 3;
+        break;
+      case 2:
+        if (answerState === 1)
+          score = 5;
+        else
+          score = 3;
+        break;
+      case 3:
+        if (answerState === 1)
+          score = 4;
+        else
+          score = 0;
+        break;
+    }
+    answerModel.push(question.answer);
+    if (answerModel.length >= 25)
+        answerModel.shift();
+    //UPDATE localstorage answer model.
+
+    let found = false;
+    for (let item of catModel) {
+      if (item.category === question.category) {
+        item.avgScore = 0.9 * item.avgScore + 0.1 * score;
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      catModel.push({ category: question.category, avgScore: score });
+    }
+    //UPDATE localstorage category
+
+    console.log(catModel);
+    console.log(answerModel);
+  }
 
   return (
     <main className="container">
@@ -110,6 +212,7 @@ export default function Home() {
           {hintLevel >= 1 && <p><b>Hint 1:</b> {question.details.hints.hint1}</p>}
           {hintLevel >= 2 && <p><b>Hint 2:</b> {question.details.hints.hint2}</p>}
           {hintLevel >= 3 && <p><b>Hint 3:</b> {question.details.hints.hint3}</p>}
+          {question.img.source !== null &&
           <div className="image-container">
             <Image 
               src={question.img.source} 
@@ -117,7 +220,7 @@ export default function Home() {
               width={250}
               height={calculateHeight(question.img.width, question.img.height)}
             />
-          </div>
+          </div>}
           <div className="content">
               {answerState !== 1 && hearts > 0 && <AnswerBar onAnswerSubmit={onAnswerSubmit}/>}
               {answerState === -1 && hearts > 0 && <div style={{display: "flex", flexDirection: "column", alignItems: "center", marginTop: 15}}>
@@ -144,6 +247,7 @@ export default function Home() {
           onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
           onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
           onClick={()=>{
+            updateModels();
             setLoading(true);
             setHintLevel(0);
             setAnswerState(0);
@@ -175,6 +279,7 @@ export default function Home() {
           onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
           onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
           onClick={()=>{
+            updateModels();
             setLoading(true);
             setHintLevel(0);
             setAnswerState(0);
