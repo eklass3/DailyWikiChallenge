@@ -1,8 +1,9 @@
 'use client';
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import AnswerBar from '../components/answerbar';
+import AnswerBar from '../components/answerBar';
 import LinkBarItem from '../components/linkbarItem';
+import CategoryInit from '../components/categoryInit';
 import axios from 'axios';
 
 const date = new Date();
@@ -10,32 +11,30 @@ const day = date.getDate();
 const month = date.toLocaleString('default', { month: 'long' });
 const year = date.getFullYear();
 
-const initialCatModel = [{"category": "Category:Air Canada", "avgScore": 5}, 
-  {"category": "Category:Ferrari vehicles", "avgScore": 5}, 
-  {"category":"Category:Provinces and territories of Canada", "avgScore": 5},
-  {"category":"Category:States of the United States", "avgScore":5},
-  {"category":"Category:Member states of the United Nations", "avgScore": 5,},
-  {"category":"Category:Highest points of countries", "avgScore": 5},
-  {"category":"Category:Populated coastal places in Norway", "avgScore": 5},
-  {"category":"Category:Events in track and field", "avgScore": 5},
-  {"category":"Category:World Marathon Majors", "avgScore": 5},
-  {"category": "Category:Universities in Ontario", "avgScore": 5},
-  {"category":"Category:Ivy Plus universities", "avgScore": 5}
-]
-const initialAnswerModel = ["Lego", "Bergen", "Eric Clapton"]
+const initialCatModel : Array<{"category":String, "avgScore": number}>= []
 
-const percentageTopCat = 0.5
+const initialAnswerModel : Array<String> = []
 
-let catModel = [{"category": "Air_Canada", "avgScore": 5}]
-let topCats;
+const percentageTopCat = 0.75
 
-let answerModel = [""]
+let catModel : Array<{"category":String, "avgScore": number}>= []
+
+let answerModel : Array<String> = []
 
 function calculateHeight(originalWidth: number, originalHeight: number): number {
   const newWidth: number = 250;
   const ratio: number = originalHeight / originalWidth;
   const newHeight: number = newWidth * ratio;
   return newHeight;
+}
+
+function generateRandomString(length: number): string {
+  let result = '';
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  for (let i = 0; i < length; i++) {
+      result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
 }
 
 export default function Home() {
@@ -119,18 +118,24 @@ export default function Home() {
 
   const loadQuestion = async () => {
     try {
-      // Sort array in descending order based on avgScore
-      catModel.sort((a, b) => b.avgScore - a.avgScore);
+      if (catModel.length > 10) {
+        // Sort array in descending order based on avgScore
+        catModel.sort((a, b) => (b.avgScore as number) - (a.avgScore as number));
 
-      // Select the top 25%
-      let topCats = catModel.slice(0, Math.ceil(catModel.length * percentageTopCat));
-      const category = topCats[Math.floor(Math.random() * topCats.length)].category;
+        // Select the top 25%
+        let topCats = catModel.slice(0, Math.ceil(catModel.length * percentageTopCat));
+        const category = topCats[Math.floor(Math.random() * topCats.length)].category;
 
-      const article = answerModel[Math.floor(Math.random() * answerModel.length)];
+        const article = answerModel[Math.floor(Math.random() * answerModel.length)];
 
-      const res = await axios.get(`./api/question_test?category=${category}&article=${article}`);
-      console.log(res.data);
-      setQuestion(res.data);
+        const res = await axios.get(`./api/question_test?category=${category}&article=${article}`);
+        console.log(res.data);
+        setQuestion(res.data);
+      } else {
+          const res = await axios.get(`./api/question_daily?seed=${generateRandomString(6)}`);
+          console.log(res.data);
+          setQuestion(res.data);
+      }
       setLoading(false);
     } catch (err) {
       console.error(err);
@@ -139,41 +144,48 @@ export default function Home() {
 
   const updateModels = () => {
     let score = 5;
-    switch (hintLevel) {
-      case 0:
+    if (answerState === 2) {
+      score = 0;
+    } else {
+      switch (hintLevel) {
+        case 0:
+            if (answerState === 1)
+              score = 10;
+            else
+              score = 3;
+          break;
+        case 1:
           if (answerState === 1)
-            score = 10;
+            score = 8;
           else
             score = 3;
-        break;
-      case 1:
-        if (answerState === 1)
-          score = 8;
-        else
-          score = 3;
-        break;
-      case 2:
-        if (answerState === 1)
-          score = 5;
-        else
-          score = 3;
-        break;
-      case 3:
-        if (answerState === 1)
-          score = 4;
-        else
-          score = 0;
-        break;
+          break;
+        case 2:
+          if (answerState === 1)
+            score = 5;
+          else
+            score = 3;
+          break;
+        case 3:
+          if (answerState === 1)
+            score = 4;
+          else
+            score = 0;
+          break;
+      }
     }
-    answerModel.push(question.answer);
-    if (answerModel.length >= 25)
-        answerModel.shift();
-    //UPDATE localstorage answer model.
+    if (answerState === 1 || answerModel.length === 0) {
+      answerModel.push(question.answer);
+      if (answerModel.length >= 25)
+          answerModel.shift();
+    }
+    
+    localStorage.setItem("answerModel", JSON.stringify(answerModel));
 
     let found = false;
-    for (let item of catModel) {
-      if (item.category === question.category) {
-        item.avgScore = 0.9 * item.avgScore + 0.1 * score;
+    for (let i = 0; i < catModel.length; i++) {
+      if (catModel[i].category === question.category) {
+        catModel[i].avgScore = 0.9 * (catModel[i].avgScore as number) + 0.1 * score;
         found = true;
         break;
       }
@@ -182,15 +194,24 @@ export default function Home() {
     if (!found) {
       catModel.push({ category: question.category, avgScore: score });
     }
-    //UPDATE localstorage category
+    localStorage.setItem("catModel", JSON.stringify(catModel));
 
     console.log(catModel);
     console.log(answerModel);
   }
 
+  const skipQuestion = () => {
+    setAnswerState(2);
+    if (score > 0)
+      setScore(score - 1);
+  }
+
   return (
     <main className="container">
       <div className="center-div">
+        <div style={{display: "flex"}}>
+          <div style={{flex: 1}}/>
+        </div>
         <div style={{display: "flex"}}>
           <h1 className="title">Daily Wiki Challenge</h1>
           <div style={{flex: 1}}/>
@@ -199,6 +220,7 @@ export default function Home() {
         <div className="line"/>
         <div style={{display: "flex"}}>
           <p className="small-text">{`${day} ${month} ${year}`}</p>
+          <p style={{marginBottom: -15, fontSize: 14, marginLeft: 15}}><a href={`/about`} target="_blank">About DWC</a></p>
           <div style={{flex: 1}}/>
           <LinkBarItem link={"/"} selected={false} text={"Daily Challenge"}/>
           <LinkBarItem link={"/test_mode"} selected={true} text={"Test Mode"}/>
@@ -222,7 +244,28 @@ export default function Home() {
             />
           </div>}
           <div className="content">
-              {answerState !== 1 && hearts > 0 && <AnswerBar onAnswerSubmit={onAnswerSubmit}/>}
+              {answerState < 1 && hearts > 0 && 
+              <div style={{display: "flex", alignItems: "center", flexDirection: "column"}}>
+                <AnswerBar onAnswerSubmit={onAnswerSubmit}/>
+                <button 
+                  style={{
+                    backgroundColor: '#f8f9fa',
+                    border: '1px solid #a2a9b1',
+                    borderRadius: '2px',
+                    padding: '10px 15px',
+                    fontSize: '14px',
+                    color: '#222',
+                    marginTop: 15,
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s ease-in-out',
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                  onClick={()=>skipQuestion()}
+                  >
+                  <b>Skip ⭐</b>
+        </button>
+              </div>}
               {answerState === -1 && hearts > 0 && <div style={{display: "flex", flexDirection: "column", alignItems: "center", marginTop: 15}}>
                 <div className="highlighter-incorrect">
                   <p style={{marginTop: 5, marginBottom: 5}}><b>Try Again.</b></p>
@@ -233,32 +276,53 @@ export default function Home() {
                   <p style={{marginTop: 5, marginBottom: 5}}><b>Game over!</b></p>
                 </div>
                 <p>The correct answer was: <a href={`https://en.wikipedia.org/wiki/${question.answer.replace(/ /g, "_")}`} target="_blank">{question.answer}</a><br/>Your score <b>⭐: </b>{score}</p>
-                <button 
-          style={{
-            backgroundColor: '#f8f9fa',
-            border: '1px solid #a2a9b1',
-            borderRadius: '2px',
-            padding: '10px 15px',
-            fontSize: '14px',
-            color: '#222',
-            cursor: 'pointer',
-            transition: 'background-color 0.2s ease-in-out',
-          }}
-          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
-          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-          onClick={()=>{
-            updateModels();
-            setLoading(true);
-            setHintLevel(0);
-            setAnswerState(0);
-            setHearts(3);
-            setScore(0);
-            loadQuestion();
-          }}
-        >
-          <b>Play Again</b>
-        </button>
+                <button style={{
+                    backgroundColor: '#f8f9fa',
+                    border: '1px solid #a2a9b1',
+                    borderRadius: '2px',
+                    padding: '10px 15px',
+                    fontSize: '14px',
+                    color: '#222',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s ease-in-out',
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                  onClick={()=>{
+                    updateModels();
+                    setLoading(true);
+                    setHintLevel(0);
+                    setAnswerState(0);
+                    setHearts(3);
+                    setScore(0);
+                    loadQuestion(); }}><b>Play Again</b></button>
                 </div>}
+                {answerState === 2 &&
+                  <div style={{display: "flex", flexDirection: "column", alignItems: "center"}}>
+                    <div className="highlighter-incorrect">
+                      <p style={{marginTop: 5, marginBottom: 5}}><b>The correct answer was: <a href={`https://en.wikipedia.org/wiki/${question.answer.replace(/ /g, "_")}`} target="_blank">{question.answer}</a></b></p>
+                    </div>
+                    <p style={{textAlign: "center"}}><b>Fun-Fact: </b>{question.details.funFact}</p>
+                  <button style={{
+                    backgroundColor: '#f8f9fa',
+                    border: '1px solid #a2a9b1',
+                    borderRadius: '2px',
+                    padding: '10px 15px',
+                    fontSize: '14px',
+                    color: '#222',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s ease-in-out',
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                  onClick={()=>{
+                    updateModels();
+                    setLoading(true);
+                    setHintLevel(0);
+                    setAnswerState(0);
+                    loadQuestion(); }}><b>Next Question</b></button>
+                  </div>
+                }
               {answerState === 1 && <div style={{display: "flex", flexDirection: "column", alignItems: "center"}}>
                 <div className="highlighter-correct">
                   <p style={{marginTop: 5, marginBottom: 5}}><b>Correct!</b></p>

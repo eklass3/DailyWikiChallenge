@@ -117,65 +117,78 @@ def generate(category, recentArticle):
 #Generate question endpoint.
 @app.route('/seed_gen/<string:seed>', methods=['GET'])
 def seed_gen(seed):
-    popArticle = getPopularArticle(seed)#Get articles from Wikipedia, based on a random search
-    imgSource = ""
-    imgHeight = 0
-    imgWidth = 0
 
-    data = getPageID(popArticle["article"])
-    # Navigate to the pageid field
-    pageid = next(iter(data["query"]["pages"].values()))["pageid"]
+    try:
+        popArticle = getPopularArticle(seed)#Get articles from Wikipedia, based on a random search
+        imgSource = ""
+        imgHeight = 0
+        imgWidth = 0
 
-    imageData = getThumbnailImage(pageid)
-    print(imageData)
-    # Use dict.get method to avoid KeyError if 'thumbnail' or 'source' is not present
-    imgSource = imageData["query"]["pages"][str(pageid)].get("thumbnail", {}).get("source")
-    imgHeight = imageData["query"]["pages"][str(pageid)].get("thumbnail", {}).get("height")
-    imgWidth = imageData["query"]["pages"][str(pageid)].get("thumbnail", {}).get("width")
+        data = getPageID(popArticle["article"])
+        parents = getParent(popArticle["article"])["query"]["pages"]
+        startingArtId = list(parents.keys())[0]
+        jParCats = parents[startingArtId]["categories"]
 
-    articleData = getData(pageid)
-    data = articleData["query"]["pages"][str(pageid)]["extract"]
-    answer = articleData["query"]["pages"][str(pageid)]["title"]
+        category = random.choice(jParCats)
+        # Navigate to the pageid field
+        pageid = next(iter(data["query"]["pages"].values()))["pageid"]
 
-    example_json = {
-        "question": "",
-        "category": "",
-        "funFact": "",
-        "hints": {
-            "hint1": "",
-            "hint2": "",
-            "hint3": "",
+        imageData = getThumbnailImage(pageid)
+        print(imageData)
+        # Use dict.get method to avoid KeyError if 'thumbnail' or 'source' is not present
+        imgSource = imageData["query"]["pages"][str(pageid)].get("thumbnail", {}).get("source")
+        imgHeight = imageData["query"]["pages"][str(pageid)].get("thumbnail", {}).get("height")
+        imgWidth = imageData["query"]["pages"][str(pageid)].get("thumbnail", {}).get("width")
+
+        articleData = getData(pageid)
+        data = articleData["query"]["pages"][str(pageid)]["extract"]
+        answer = articleData["query"]["pages"][str(pageid)]["title"]
+
+        example_json = {
+            "question": "",
+            "funFact": "",
+            "hints": {
+                "hint1": "",
+                "hint2": "",
+                "hint3": "",
+            }
         }
-    }
-    
-    while True:#GPT question prompt.
-        prompt = "Write a trivia question and three progressively easier hints. The answer to the question MUST clearly be " + answer + " (even if it is a sentence). Do not say the answer in the question or hints. Add the trivia category, and a fun fact. Here is some background info: " + data
+        
+        while True:#GPT question prompt.
+            prompt = "Write a trivia question and three progressively easier hints. The answer to the question MUST clearly be " + answer + " (even if it is a sentence). Do not say the answer in the question or hints. Add the trivia category, and a fun fact. Here is some background info: " + data
 
-        details = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            response_format={"type":"json_object"},
-            messages=[
-                {"role":"system", "content": "Provide output in valid JSON and in English. The data schema should be like this: " + json.dumps(example_json)},
-                {"role": "user", "content": prompt}
-            ]
-        )
+            details = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                response_format={"type":"json_object"},
+                messages=[
+                    {"role":"system", "content": "Provide output in valid JSON and in English. The data schema should be like this: " + json.dumps(example_json)},
+                    {"role": "user", "content": prompt}
+                ]
+            )
 
-        details = details.choices[0].message.content
+            details = details.choices[0].message.content
 
 
-        if repair_json(details) != "":
-            break
+            if repair_json(details) != "":
+                break
 
-    jsonDetails = json.loads(repair_json(details));
+        jsonDetails = json.loads(repair_json(details));
 
-    responseDict = {
-        "answer": answer,
-        "details": jsonDetails,
-        "img": {"source": imgSource, "height": imgHeight, "width": imgWidth}
-    }
-    
-    return responseDict
-
+        responseDict = {
+            "answer": answer,
+            "category": category,
+            "details": jsonDetails,
+            "img": {"source": imgSource, "height": imgHeight, "width": imgWidth}
+        }
+        
+        #print(responseDict)
+        if (len(jsonDetails) > 0 and (":" not in answer)):
+            return responseDict
+        else:
+            return seed_gen(seed)
+        
+    except KeyError:
+        return seed_gen(seed)
 #Get Wikipedia articles for a given category
 def getArticles(category):
     params = {
@@ -191,10 +204,8 @@ def getArticles(category):
     data = response.json()
     return data
 
-import requests
-
 def getPopularArticle(seed):
-    current_date = datetime.now()
+    current_date = datetime.strptime(seed, '%Y%m%d')
     # Subtract one day
     one_day_ago = current_date - timedelta(days=1)  
 

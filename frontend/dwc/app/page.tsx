@@ -1,7 +1,7 @@
 'use client';
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import AnswerBar from './components/answerbar';
+import AnswerBar from './components/answerBar';
 import LinkBarItem from './components/linkbarItem';
 import axios from 'axios';
 
@@ -143,13 +143,13 @@ export default function Home() {
     const date1 = new Date(date1Millis);
     const date2 = new Date(date2Millis);
 
-    const day1 = date1.getUTCDate();
-    const month1 = date1.getUTCMonth();
-    const year1 = date1.getUTCFullYear();
+    const day1 = date1.getDate();
+    const month1 = date1.getMonth();
+    const year1 = date1.getFullYear();
 
-    const day2 = date2.getUTCDate();
-    const month2 = date2.getUTCMonth();
-    const year2 = date2.getUTCFullYear();
+    const day2 = date2.getDate();
+    const month2 = date2.getMonth();
+    const year2 = date2.getFullYear();
 
     // Check if the years are the same
     if (year1 === year2) {
@@ -177,14 +177,13 @@ function isSameDay(date1Millis: number, date2Millis: number): boolean {
          date1.getUTCDate() === date2.getUTCDate();
 }
 
-function getFormattedSeedDate(): string {
+function getUniqueValueForToday() {
   const date = new Date();
-  
-  const day = date.getDate().toString().padStart(2, '0');
-  const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-based in JavaScript
-  const year = date.getFullYear().toString().slice(2); // Get the last two digits of the year
-  
-  return day + month + year;
+  const year = date.getFullYear();
+  // getMonth() returns month starting from 0, so we add 1 to get the correct month number
+  const month = ('0' + (date.getMonth() + 1)).slice(-2); 
+  const day = ('0' + date.getDate()).slice(-2);
+  return year + month + day;
 }
 
   const scoreCalculator = () => {
@@ -242,7 +241,7 @@ function getFormattedSeedDate(): string {
 
   const loadQuestion = async () => {
     try {
-      const res = await axios.get(`./api/question_daily?seed=${getFormattedSeedDate()}`);
+      const res = await axios.get(`./api/question_daily?seed=${getUniqueValueForToday()}`);
       console.log(res.data);
       setQuestion(res.data);
       setLoading(false);
@@ -262,6 +261,7 @@ function getFormattedSeedDate(): string {
         <div className="line"/>
         <div style={{display: "flex"}}>
         <p className="small-text">{`${day} ${month} ${year}`}</p>
+        <p style={{marginBottom: -15, fontSize: 14, marginLeft: 15}}><a href={`/about`} target="_blank">About DWC</a></p>
         <div style={{flex: 1}}/>
           <LinkBarItem link={"/"} selected={true} text={"Daily Challenge"}/>
           <LinkBarItem link={"/test_mode"} selected={false} text={"Test Mode"}/>
