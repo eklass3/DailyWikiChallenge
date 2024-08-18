@@ -4,6 +4,7 @@ from json_repair import repair_json
 from datetime import datetime, timedelta
 import json, requests, random, string
 import hashlib
+import os
 
 app = Flask(__name__)
 
@@ -14,9 +15,11 @@ maxResultSet = 100 #Max number of results from search set.
 
 chanceOfSelectingExistingCategory = 0.5
 
+import hashlib
+
 def stringToNumber(seed, limit):
     # Get the hash of the string
-    hashed_seed = hash(seed)
+    hashed_seed = int(hashlib.sha256(seed.encode()).hexdigest(), 16)
 
     # Convert the hash to a number between 0 and limit
     number = hashed_seed % limit
@@ -205,7 +208,10 @@ def getArticles(category):
     return data
 
 def getPopularArticle(seed):
-    current_date = datetime.strptime(seed, '%Y%m%d')
+    try:
+        current_date = datetime.strptime(seed, '%Y%m%d')
+    except ValueError:
+        current_date = datetime.now()
     # Subtract one day
     one_day_ago = current_date - timedelta(days=1)  
 
@@ -217,7 +223,6 @@ def getPopularArticle(seed):
     }
 
     response = requests.get(url, headers=headers)
-    print(response)
     data = response.json()
 
     # Get the list of articles
@@ -305,3 +310,6 @@ def getRelatedArticle(startingArt):
     title = art["title"]
     pageid = art["pageid"]
     return {"category": randomParCat["title"], "article": title, "pageid": pageid}
+
+if __name__ == '__main__':
+   app.run(port=int(os.environ.get("PORT", 8080)),host='0.0.0.0',debug=True)

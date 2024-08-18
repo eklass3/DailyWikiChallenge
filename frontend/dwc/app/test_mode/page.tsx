@@ -117,6 +117,7 @@ export default function Home() {
   }
 
   const loadQuestion = async () => {
+    console.log("Loading QUESTION")
     try {
       if (catModel.length > 10) {
         // Sort array in descending order based on avgScore
@@ -127,11 +128,13 @@ export default function Home() {
         const category = topCats[Math.floor(Math.random() * topCats.length)].category;
 
         const article = answerModel[Math.floor(Math.random() * answerModel.length)];
-
+        console.log("Loading from test mode option.");
         const res = await axios.get(`./api/question_test?category=${category}&article=${article}`);
         console.log(res.data);
         setQuestion(res.data);
       } else {
+          const seed = generateRandomString(6);
+          console.log("loading from daily option. Seed: " + seed);
           const res = await axios.get(`./api/question_daily?seed=${generateRandomString(6)}`);
           console.log(res.data);
           setQuestion(res.data);

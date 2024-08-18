@@ -1,6 +1,9 @@
 import axios from 'axios';
 import { NextResponse, NextRequest } from 'next/server';
 
+const localURL = "http://localhost:5000"
+const remoteURL = "https://daily-wiki-challenge-image-ov6nxn2mva-uc.a.run.app"
+
 export async function GET(req: NextRequest) {
   let result;
   let categoryParam = req.nextUrl.searchParams.get('category');
@@ -14,9 +17,9 @@ export async function GET(req: NextRequest) {
     articleParam = articleParam.replace(/ /g, "_")
   }
 
-  console.log(categoryParam);
+  console.log("RUNNING TEST MODE GET QUESTION");
   try {
-    const response = await axios.get(`http://localhost:5000/generate/${categoryParam}/${articleParam}`);
+    const response = await axios.get(`${remoteURL}/generate/${categoryParam}/${articleParam}`);
     result = response.data;
   } catch (error) {
     console.error(error);

@@ -271,6 +271,7 @@ function getUniqueValueForToday() {
         {!loading &&
         <div className="question-container">
           <p>{question.details.question}</p>
+          <p>{getUniqueValueForToday()}</p>
           {hintLevel < 3 && <button className="link-button" onClick={showHint}>Hint ({3-hintLevel})</button>}
           {hintLevel >= 1 && <p><b>Hint 1:</b> {question.details.hints.hint1}</p>}
           {hintLevel >= 2 && <p><b>Hint 2:</b> {question.details.hints.hint2}</p>}
