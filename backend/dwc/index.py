@@ -193,10 +193,10 @@ def seed_gen(seed):
         if (len(jsonDetails) > 0 and (":" not in answer) and jsonDetails["question"] != "" and ("List of" not in answer) and ("Index of" not in answer)):
             return responseDict
         else:
-            return seed_gen(seed+"a")
+            return seed_gen(seed + "a")#Try a new seed.
         
     except KeyError:
-        return seed_gen(seed+"a")
+        return seed_gen(seed)#Error loading data, retry.
 #Get Wikipedia articles for a given category
 def getArticles(category):
     params = {
