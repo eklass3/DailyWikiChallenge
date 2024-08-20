@@ -28,7 +28,7 @@ export default function AnswerBar({onAnswerSubmit}) {
             setInput(e.target.value)
             setSelected(false);
         }} 
-        placeholder="Search..."
+        placeholder="Search Articles..."
         className="input-focus"/>
         <button 
           style={{

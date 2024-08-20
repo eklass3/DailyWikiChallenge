@@ -13,7 +13,8 @@ client = Client()#GPT client
 wikiUrl = "https://en.wikipedia.org/w/api.php"#Wikipedia API URL
 maxResultSet = 100 #Max number of results from search set.
 
-chanceOfSelectingExistingCategory = 0.5
+chanceOfSelectingExistingCategory = 0.3
+chanceOfSelectingPopCategory = 0.5
 
 import hashlib
 
@@ -54,9 +55,12 @@ def generate(category, recentArticle):
             article["title"] = art["title"]
             article["pageid"] = art["pageid"]
         else:
-            data = getRelatedArticle(recentArticle)
-            article = {"title": data["article"], "pageid": data["pageid"]}
-            quizCategory = data["category"] 
+            if (percentRandom(chanceOfSelectingPopCategory)):
+                return seed_gen(generate_random_string())
+            else:
+                data = getRelatedArticle(recentArticle)
+                article = {"title": data["article"], "pageid": data["pageid"]}
+                quizCategory = data["category"] 
 
 
         imageData = getThumbnailImage(article["pageid"])
@@ -99,17 +103,19 @@ def generate(category, recentArticle):
             if repair_json(details) != "":
                 break
 
-        jsonDetails = json.loads(repair_json(details));
+        jsonDetails = json.loads(repair_json(details))
+
+
 
         responseDict = {
             "answer": answer,
-            "category": quizCategory,
+            "category": {"title": quizCategory.replace("_", " ")},
             "details": jsonDetails,
             "img": {"source": imgSource, "height": imgHeight, "width": imgWidth}
         }
 
         #print(responseDict)
-        if (len(jsonDetails) > 0 and (":" not in answer)):
+        if (len(jsonDetails) > 0 and (":" not in answer) and jsonDetails["question"] != "" and ("List of" not in answer) and ("Index of" not in answer)):
             return responseDict
         else:
             return generate(category, recentArticle)
@@ -171,7 +177,6 @@ def seed_gen(seed):
 
             details = details.choices[0].message.content
 
-
             if repair_json(details) != "":
                 break
 
@@ -185,13 +190,13 @@ def seed_gen(seed):
         }
         
         #print(responseDict)
-        if (len(jsonDetails) > 0 and (":" not in answer)):
+        if (len(jsonDetails) > 0 and (":" not in answer) and jsonDetails["question"] != "" and ("List of" not in answer) and ("Index of" not in answer)):
             return responseDict
         else:
-            return seed_gen(seed)
+            return seed_gen(seed+"a")
         
     except KeyError:
-        return seed_gen(seed)
+        return seed_gen(seed+"a")
 #Get Wikipedia articles for a given category
 def getArticles(category):
     params = {
@@ -213,7 +218,7 @@ def getPopularArticle(seed):
     except ValueError:
         current_date = datetime.now()
     # Subtract one day
-    one_day_ago = current_date - timedelta(days=1)  
+    one_day_ago = current_date - timedelta(days=2)  
 
     strYesterday = one_day_ago.strftime('%Y/%m/%d')
     url = "https://wikimedia.org/api/rest_v1/metrics/pageviews/top/en.wikipedia.org/all-access/" + strYesterday

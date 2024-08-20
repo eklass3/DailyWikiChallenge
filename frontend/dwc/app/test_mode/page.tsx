@@ -15,7 +15,8 @@ const initialCatModel : Array<{"category":String, "avgScore": number}>= []
 
 const initialAnswerModel : Array<String> = []
 
-const percentageTopCat = 0.75
+const percentageTopCat = 0.25;
+const minToUseModel = 30;
 
 let catModel : Array<{"category":String, "avgScore": number}>= []
 
@@ -43,9 +44,11 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [score, setScore] = useState(0);
   const [hearts, setHearts] = useState(3);
+  const [devMode, setDevMode] = useState(false);
+  const [modelsClear, setModelsClear] = useState(false);
   const [question, setQuestion] = useState({
     'answer': 'George V', 
-    'category': 'History',
+    'category': {"ns": "", "title": ""},
     'details': 
       {'question': 
         'Who was the King of the United Kingdom and Emperor of India from 1910 until his death in 1936?', 
@@ -67,7 +70,7 @@ export default function Home() {
         }
 });
 
-  useEffect(()=>{
+   useEffect(()=>{
     loadCatModel();
     loadAnswerModel();
     loadQuestion();
@@ -119,7 +122,7 @@ export default function Home() {
   const loadQuestion = async () => {
     console.log("Loading QUESTION")
     try {
-      if (catModel.length > 10) {
+      if (catModel.length > minToUseModel) {
         // Sort array in descending order based on avgScore
         catModel.sort((a, b) => (b.avgScore as number) - (a.avgScore as number));
 
@@ -155,19 +158,19 @@ export default function Home() {
             if (answerState === 1)
               score = 10;
             else
-              score = 3;
+              score = 0;
           break;
         case 1:
           if (answerState === 1)
             score = 8;
           else
-            score = 3;
+            score = 0;
           break;
         case 2:
           if (answerState === 1)
             score = 5;
           else
-            score = 3;
+            score = 1;
           break;
         case 3:
           if (answerState === 1)
@@ -187,7 +190,7 @@ export default function Home() {
 
     let found = false;
     for (let i = 0; i < catModel.length; i++) {
-      if (catModel[i].category === question.category) {
+      if (catModel[i].category === question.category.title) {
         catModel[i].avgScore = 0.9 * (catModel[i].avgScore as number) + 0.1 * score;
         found = true;
         break;
@@ -195,12 +198,20 @@ export default function Home() {
     }
 
     if (!found) {
-      catModel.push({ category: question.category, avgScore: score });
+      catModel.push({ category: question.category.title, avgScore: score });
     }
     localStorage.setItem("catModel", JSON.stringify(catModel));
 
     console.log(catModel);
     console.log(answerModel);
+  }
+
+  const clearModels = () => {
+     catModel = []
+     answerModel = []
+     localStorage.setItem("catModel", "");
+     localStorage.setItem("answerModel", "");
+     setModelsClear(true);
   }
 
   const skipQuestion = () => {
@@ -224,12 +235,16 @@ export default function Home() {
         <div style={{display: "flex"}}>
           <p className="small-text">{`${day} ${month} ${year}`}</p>
           <p style={{marginBottom: -15, fontSize: 14, marginLeft: 15}}><a href={`/about`} target="_blank">About DWC</a></p>
+          <div style={{display: "flex", alignItems: "center", marginLeft: 15}}>
+            <input type="checkbox" checked={devMode} onChange={()=>{setDevMode(!devMode)}}/>
+            <p style={{fontSize: 14}}>Dev Mode</p>
+          </div>
           <div style={{flex: 1}}/>
           <LinkBarItem link={"/"} selected={false} text={"Daily Challenge"}/>
-          <LinkBarItem link={"/test_mode"} selected={true} text={"Test Mode"}/>
+          <LinkBarItem link={"/test_mode"} selected={true} text={"Test Mode (Beta)"}/>
         </div>
         <div className="light-line"></div>
-        {loading && <p>Loading Question...</p>}
+        {loading && <p>Crafting Question...</p>}
         {!loading &&
         <div className="question-container">
           <p>{question.details.question}</p>
@@ -356,6 +371,25 @@ export default function Home() {
           <b>Next Question</b>
         </button>
               </div>}
+              {devMode &&
+                <div>
+                  <h2>Dev Mode Details</h2>
+                  <button onClick={()=>clearModels()}>Clear Model</button>
+                  <p><b>Categories selected:</b> {JSON.stringify(question.category.title)}</p>
+                  {!modelsClear &&
+                  <div>
+                    <p><b>Category Model:</b> {JSON.stringify(catModel)}</p>
+                    <p><b>Answer Model:</b> {JSON.stringify(answerModel)}</p>
+                  </div>
+                  }
+                  {modelsClear &&
+                    <div>
+                    <p><b>Category Model: []</b></p>
+                    <p><b>Answer Model: []</b></p>
+                  </div>
+                  }
+                </div>
+              }
           </div>
         </div>
         }

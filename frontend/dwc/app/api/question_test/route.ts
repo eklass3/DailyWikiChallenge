@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 
   console.log("RUNNING TEST MODE GET QUESTION");
   try {
-    const response = await axios.get(`${remoteURL}/generate/${categoryParam}/${articleParam}`);
+    const response = await axios.get(`${localURL}/generate/${categoryParam}/${articleParam}`);
     result = response.data;
   } catch (error) {
     console.error(error);

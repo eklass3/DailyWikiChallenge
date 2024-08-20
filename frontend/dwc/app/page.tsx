@@ -264,14 +264,13 @@ function getUniqueValueForToday() {
         <p style={{marginBottom: -15, fontSize: 14, marginLeft: 15}}><a href={`/about`} target="_blank">About DWC</a></p>
         <div style={{flex: 1}}/>
           <LinkBarItem link={"/"} selected={true} text={"Daily Challenge"}/>
-          <LinkBarItem link={"/test_mode"} selected={false} text={"Test Mode"}/>
+          <LinkBarItem link={"/test_mode"} selected={false} text={"Test Mode (Beta)"}/>
         </div>
         <div className="light-line"></div>
         {loading && <p>Loading Question...</p>}
         {!loading &&
         <div className="question-container">
           <p>{question.details.question}</p>
-          <p>{getUniqueValueForToday()}</p>
           {hintLevel < 3 && <button className="link-button" onClick={showHint}>Hint ({3-hintLevel})</button>}
           {hintLevel >= 1 && <p><b>Hint 1:</b> {question.details.hints.hint1}</p>}
           {hintLevel >= 2 && <p><b>Hint 2:</b> {question.details.hints.hint2}</p>}
