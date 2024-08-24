@@ -3,6 +3,8 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import AnswerBar from './components/answerBar';
 import LinkBarItem from './components/linkbarItem';
+import { db } from '../lib/firebaseConfig';
+import { collection, getDocs, setDoc, query, where, doc, addDoc } from "firebase/firestore";
 import axios from 'axios';
 
 const date = new Date();
@@ -46,9 +48,46 @@ export default function Home() {
         }
 });
 
-  useEffect(()=>{
-    loadQuestion();
-    const stateInfo = localStorage.getItem("stateInfo");//Get saved state info.
+useEffect(()=>{
+
+  const fetchData = async () => {
+    const q = query(collection(db, "daily-question"), where("date", "==", getUniqueValueForToday()))
+    const querySnapshot = await getDocs(q);
+    const docs = querySnapshot.docs.map((doc) => doc.data());
+
+    console.log(docs);
+
+    if (docs.length > 0) {
+      const question = docs[0]
+      setQuestion({
+        'answer': question.answer, 
+        'details': 
+          {'question': 
+            question.question, 
+            'category': question.category, 
+            'hints': 
+              {'hint1': question.hint1, 
+                'hint2': question.hint2, 
+                'hint3': question.hint3,
+              }, 
+            'difficulty': 
+            'medium',
+            'funFact': question.fun_fact,
+          }, 
+          'img': 
+            { 'source': question.img_src, 
+              'height': question.img_h, 
+              'width': question.img_w
+            }
+      })
+      setLoading(false);
+    } else {
+      loadQuestion();
+    }
+  };
+  fetchData();
+
+  const stateInfo = localStorage.getItem("stateInfo");//Get saved state info.
 
     /*
     {
@@ -118,7 +157,7 @@ export default function Home() {
     }
   }, [])
 
-  const showHint = () => {
+const showHint = () => {
     setHintLevel(hintLevel + 1);
 
     const stateInfo = localStorage.getItem("stateInfo");//Must update hints in local storage.
@@ -139,7 +178,7 @@ export default function Home() {
     }
   }
 
-  function isOneDayLater(date1Millis: number, date2Millis: number): boolean {
+function isOneDayLater(date1Millis: number, date2Millis: number): boolean {
     const date1 = new Date(date1Millis);
     const date2 = new Date(date2Millis);
 
@@ -245,6 +284,33 @@ function getUniqueValueForToday() {
       console.log(res.data);
       setQuestion(res.data);
       setLoading(false);
+
+      try {
+        // Reference to the document
+        const collectionRef = collection(db, "daily-question");
+    
+        // Data to be inserted
+        const data = {
+          answer: res.data.answer,
+          category: res.data.category.title,
+          date: getUniqueValueForToday(),
+          fun_fact: res.data.details.funFact,
+          hint1: res.data.details.hints.hint1,
+          hint2: res.data.details.hints.hint2,
+          hint3: res.data.details.hints.hint3,
+          hint4: "",
+          img_src: res.data.img.source,
+          img_h: res.data.img.height,
+          img_w: res.data.img.width,
+          question: res.data.details.question
+        };
+    
+        // Set the document with the data
+        await addDoc(collectionRef, data);
+        console.log("Document successfully written!");
+      } catch (e) {
+        console.error("Error adding document: ", e);
+      }
     } catch (err) {
       console.error(err);
     }

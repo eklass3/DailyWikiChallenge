@@ -1,6 +1,6 @@
 'use client';
 
-const VERSION_CODE = "Beta 0.0.1"
+const VERSION_CODE = "Beta 0.0.2"
 
 export default function Home() {
     return (
