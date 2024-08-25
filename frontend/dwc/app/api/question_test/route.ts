@@ -17,7 +17,6 @@ export async function GET(req: NextRequest) {
     articleParam = articleParam.replace(/ /g, "_")
   }
 
-  console.log("RUNNING TEST MODE GET QUESTION");
   try {
     const response = await axios.get(`${localURL}/generate/${categoryParam}/${articleParam}`);
     result = response.data;

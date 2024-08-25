@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import AnswerBar from './components/answerBar';
 import LinkBarItem from './components/linkbarItem';
 import { db } from '../lib/firebaseConfig';
-import { collection, getDocs, setDoc, query, where, doc, addDoc } from "firebase/firestore";
+import { getAccountStats , updateAccountStats, createAccountStats } from '../utils/firebaseAccountHelpers'
+import { collection, getDocs, updateDoc, getDoc, query, where, doc, addDoc } from "firebase/firestore";
 import axios from 'axios';
 
 const date = new Date();
@@ -49,162 +50,103 @@ export default function Home() {
 });
 
 useEffect(()=>{
+  const fetchAccountData = async () => {
+    const documentId = localStorage.getItem('userDocumentId');
 
-  const fetchData = async () => {
-    const q = query(collection(db, "daily-question"), where("date", "==", getUniqueValueForToday()))
-    const querySnapshot = await getDocs(q);
-    const docs = querySnapshot.docs.map((doc) => doc.data());
+    try {
+      if (documentId) {
+        const data = await getAccountStats(documentId);
 
-    console.log(docs);
+        if (data) {
+          const lastCorrectDateMillis = data.lastCorrect ? new Date(data.lastCorrect).getTime() : 0;
+          const currentDateMillis = new Date().getTime();
 
-    if (docs.length > 0) {
-      const question = docs[0]
-      setQuestion({
-        'answer': question.answer, 
-        'details': 
-          {'question': 
-            question.question, 
-            'category': question.category, 
-            'hints': 
-              {'hint1': question.hint1, 
-                'hint2': question.hint2, 
-                'hint3': question.hint3,
-              }, 
-            'difficulty': 
-            'medium',
-            'funFact': question.fun_fact,
-          }, 
-          'img': 
-            { 'source': question.img_src, 
-              'height': question.img_h, 
-              'width': question.img_w
+          // Check if the current date is at least one day later than the last correct date
+          if (!isSameDay(lastCorrectDateMillis, currentDateMillis)) {
+            if (isOneDayLater(lastCorrectDateMillis, currentDateMillis - 24 * 60 * 60 * 1000)) {
+              await updateAccountStats(documentId, { answerState: 0, hintLevel: 0 });
+            } else if (isOneDayLater(lastCorrectDateMillis, currentDateMillis)) {
+              await updateAccountStats(documentId, { answerState: 0, hintLevel: 0, streak: 0 });
             }
-      })
-      setLoading(false);
-    } else {
-      loadQuestion();
+          }
+
+          setHintLevel(data.hintLevel || 0);
+          setAnswerState(data.answerState || 0);
+          setScore(data.score || 0);
+          setStreak(data.streak || 0);
+        }
+      } else {
+        const newDocumentId = await createAccountStats({
+          answerState: 0,
+          hintLevel: 0,
+          lastCorrect: null,
+          score: 0,
+          streak: 0,
+          timezone: 'UTC'
+        });
+        localStorage.setItem('userDocumentId', newDocumentId);
+      }
+
+      const fetchQuestionData = async () => {
+        const q = query(collection(db, "daily-question"), where("date", "==", getUniqueValueForToday()));
+        const querySnapshot = await getDocs(q);
+        const docs = querySnapshot.docs.map((doc) => doc.data());
+
+        if (docs.length > 0) {
+          const question = docs[0];
+          setQuestion({
+            answer: question.answer, 
+            details: {
+              question: question.question, 
+              category: question.category, 
+              hints: {
+                hint1: question.hint1, 
+                hint2: question.hint2, 
+                hint3: question.hint3,
+              }, 
+              difficulty: 'medium',
+              funFact: question.fun_fact,
+            }, 
+            img: {
+              source: question.img_src, 
+              height: question.img_h, 
+              width: question.img_w
+            }
+          });
+          setLoading(false);
+        } else {
+          loadQuestion();
+        }
+      };
+
+      fetchQuestionData();
+    } catch (error) {
+      console.error('Error fetching or creating account data:', error);
     }
   };
-  fetchData();
 
-  const stateInfo = localStorage.getItem("stateInfo");//Get saved state info.
+  fetchAccountData();
+}, [])
 
-    /*
-    {
-      "lastDC":  0000000,
-      "hintLevel": 0
-      "streak": 0
-      "score": 0
-      "answerState": 0
-    }
-    */
+const showHint = async () => {
+  const documentId = localStorage.getItem('userDocumentId');
 
-    if (stateInfo != null) {//If the app has been opened before.
-      const jStateInfo = JSON.parse(stateInfo);
-      const lastDC = jStateInfo.lastDC;
-      setScore(jStateInfo.score);//The score has not changed. Set score.
-
-      console.log("STATE INFO " + stateInfo);
-      let tempStreak = 0;
-      let tempAnswerState = 0;
-      let tempHintLevel = 0;
-      //If one day has passed or it is the same day (keep streak)
-      if (isOneDayLater(lastDC, new Date().getTime()) || isSameDay(lastDC, new Date().getTime())) {
-        setStreak(jStateInfo.streak);//Set streak to what is was before
-        tempStreak = jStateInfo.streak;
-
-        if (isOneDayLater(lastDC, new Date().getTime())) {//If one day later, reset answer and hint states.
-          setAnswerState(0);
-          tempAnswerState = 0;
-
-          setHintLevel(0);
-          tempHintLevel = 0;
-        } else {//Same day, keep answer and hint states
-          setAnswerState(jStateInfo.answerState);
-          tempAnswerState = jStateInfo.answerState;
-
-          setHintLevel(jStateInfo.hintLevel);
-          tempHintLevel = jStateInfo.hintLevel;
-        }
-      } else {//Several days have passed. Reset streak, answer state, hint level.
-        setStreak(0);
-        tempStreak = 0;
-        tempAnswerState = 0;
-        tempHintLevel = 0;
-      }
-
-      //Update state info.
-      const newStateInfo = {
-        "lastDC": lastDC,//Streak has not be extended.
-        "hintLevel": tempHintLevel,//Set hint level
-        "streak": tempStreak,//Set streak
-        "score": jStateInfo.score,//Score stays same
-        "answerState": tempAnswerState//Set answer state
-      }
-
-      localStorage.setItem("stateInfo", JSON.stringify(newStateInfo));
-
-    } else {//Never played game before
-      const newStateInfo = {
-        "lastDC": new Date().getTime(),//Set new DC
-        "hintLevel": 0,
-        "streak": 0,
-        "score": 0,
-        "answerState": 0,
-      }
-
-      localStorage.setItem("stateInfo", JSON.stringify(newStateInfo));
-    }
-  }, [])
-
-const showHint = () => {
+  if (documentId) {
     setHintLevel(hintLevel + 1);
 
-    const stateInfo = localStorage.getItem("stateInfo");//Must update hints in local storage.
-
-    if (stateInfo != null) {//State should never be null at this point.
-
-      const jStateInfo = JSON.parse(stateInfo);
-
-      const newStateInfo = {
-        "lastDC": jStateInfo.lastDC,
-        "hintLevel": hintLevel+1,//Hin level incremented by 1.
-        "streak": jStateInfo.streak,
-        "score": jStateInfo.score,
-        "answerState": jStateInfo.answerState,
-      }
-
-      localStorage.setItem("stateInfo", JSON.stringify(newStateInfo))
+    try {
+      await updateAccountStats(documentId, { hintLevel: hintLevel + 1 });
+    } catch (error) {
+      console.error('Error updating hint level:', error);
     }
   }
+};
 
 function isOneDayLater(date1Millis: number, date2Millis: number): boolean {
-    const date1 = new Date(date1Millis);
-    const date2 = new Date(date2Millis);
-
-    const day1 = date1.getDate();
-    const month1 = date1.getMonth();
-    const year1 = date1.getFullYear();
-
-    const day2 = date2.getDate();
-    const month2 = date2.getMonth();
-    const year2 = date2.getFullYear();
-
-    // Check if the years are the same
-    if (year1 === year2) {
-        // If the years are the same, check if the months are the same
-        if (month1 === month2) {
-            // If the months are the same, check if the days are consecutive
-            return day2 - day1 === 1;
-        } else {
-            // If the months are different, they must be consecutive and the day of date2 must be the first day of the month
-            return month2 - month1 === 1 && day2 === 1;
-        }
-    } else {
-        // If the years are different, they must be consecutive, the day of date2 must be the first day of the year, and the month of date2 must be January
-        return year2 - year1 === 1 && month2 === 0 && day2 === 1;
-    }
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+  return (date2Millis - date1Millis) === ONE_DAY_MS;
 }
+
 
 function isSameDay(date1Millis: number, date2Millis: number): boolean {
   const date1 = new Date(date1Millis);
@@ -225,7 +167,7 @@ function getUniqueValueForToday() {
   return year + month + day;
 }
 
-  const scoreCalculator = () => {
+const scoreCalculator = () => {
     if (hintLevel === 0)
       return 5;
     else if (hintLevel === 1)
@@ -234,49 +176,35 @@ function getUniqueValueForToday() {
       return 2;
     else
       return 1;
-  }
+}
 
-  const onAnswerSubmit = (value: string) => {
-    if (value.toLowerCase().trim() === question.answer.toLowerCase()) {//If the answer is correct.
-      setAnswerState(1);//Set answer state to correct.
+const onAnswerSubmit = async (value: string) => {
+  const documentId = localStorage.getItem('userDocumentId');
 
-        const stateInfo = localStorage.getItem("stateInfo");
+  if (documentId) {
+    if (value.toLowerCase().trim() === question.answer.toLowerCase()) { // If the answer is correct
+      setAnswerState(1); // Set answer state to correct
 
-        if (stateInfo !== null) {//State should never be null at this point
+      const newScore = score + scoreCalculator();
+      const newStreak = streak + 1;
+      setScore(newScore);
+      setStreak(newStreak);
 
-          const jStateInfo = JSON.parse(stateInfo);
-          //Initializing variables.
-          let newDC =  jStateInfo.lastDC;
-          let newStreak = jStateInfo.streak;
-          let newScore = jStateInfo.score;
-
-          if (isOneDayLater(jStateInfo.lastDC, new Date().getTime())) {//If one day has passed
-            newDC = new Date().getTime();//Update DC
-            newStreak = jStateInfo.streak + 1;//Increase streak
-            setStreak(newStreak);//Update streak state
-          }
-
-          newScore = score + scoreCalculator();//Regardless of date/streak increase score
-          setScore(score + scoreCalculator());//Set score state
-          //Update state level
-          const newStateInfo = {
-            "lastDC": newDC,
-            "hintLevel": hintLevel,//Hint stays same
-            "streak": newStreak,
-            "score": newScore,
-            "answerState": 1
-          }
-    
-          localStorage.setItem("stateInfo", JSON.stringify(newStateInfo));
-
-          console.log("NEW STATE INFO " + JSON.stringify(newStateInfo));
-
+      try {
+        await updateAccountStats(documentId, {
+          answerState: 1,
+          score: newScore,
+          streak: newStreak,
+          lastCorrect: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('Error updating answer state:', error);
       }
-      
     } else {
-      setAnswerState(-1);
+      setAnswerState(-1); // Set answer state to incorrect
     }
   }
+};
 
   const loadQuestion = async () => {
     try {

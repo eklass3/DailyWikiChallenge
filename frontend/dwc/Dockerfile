@@ -16,6 +16,9 @@ COPY . .
 # 6. Build the Next.js app
 RUN npm run build
 
+# Set environment variables for the production environment
+ENV NODE_ENV=production
+
 # 7. Expose the port that your app runs on
 EXPOSE 3000
 
