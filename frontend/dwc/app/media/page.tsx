@@ -10,11 +10,26 @@ const day = date.getDate();
 const month = date.toLocaleString('default', { month: 'long' });
 const year = date.getFullYear();
 
-function calculateHeight(originalWidth: number, originalHeight: number): number {
-  const newWidth: number = 250;
+function calculateDimensions(
+  originalWidth: number,
+  originalHeight: number,
+  maxWidth: number,
+  maxHeight: number
+): { width: number; height: number } {
+  // Calculate the aspect ratio
   const ratio: number = originalHeight / originalWidth;
-  const newHeight: number = newWidth * ratio;
-  return newHeight;
+  
+  // First calculate based on maxHeight
+  let newHeight: number = Math.min(originalHeight, maxHeight);
+  let newWidth: number = newHeight / ratio;
+  
+  // If the new width exceeds maxWidth, adjust based on maxWidth
+  if (newWidth > maxWidth) {
+    newWidth = maxWidth;
+    newHeight = newWidth * ratio;
+  }
+
+  return { width: newWidth, height: newHeight };
 }
 
 export default function Home() {
@@ -143,7 +158,7 @@ function getUniqueValueForToday() {
           <div style={{ flex: 1 }} />
         </div>
         <div className="line" />
-        <div style={{ display: "flex" }}>
+        <div style={{ display: "flex", marginTop: -10, marginBottom: -10 }}>
           <p className="small-text">{`${day} ${month} ${year}`}</p>
         </div>
         <div className="line" />
@@ -157,8 +172,8 @@ function getUniqueValueForToday() {
                 <Image
                   src={question.img.source}
                   alt="Question Image"
-                  width={250}
-                  height={calculateHeight(question.img.width, question.img.height)}
+                  width={calculateDimensions(question.img.width, question.img.height, 325, 225).width}
+                  height={calculateDimensions(question.img.width, question.img.height, 325, 225).height}
                 />
               </div>
             )}
