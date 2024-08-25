@@ -61,19 +61,26 @@ useEffect(()=>{
           const lastCorrectDateMillis = data.lastCorrect ? new Date(data.lastCorrect).getTime() : 0;
           const currentDateMillis = new Date().getTime();
 
-          // Check if the current date is at least one day later than the last correct date
-          if (!isSameDay(lastCorrectDateMillis, currentDateMillis)) {
-            if (isOneDayLater(lastCorrectDateMillis, currentDateMillis - 24 * 60 * 60 * 1000)) {
-              await updateAccountStats(documentId, { answerState: 0, hintLevel: 0 });
-            } else if (isOneDayLater(lastCorrectDateMillis, currentDateMillis)) {
-              await updateAccountStats(documentId, { answerState: 0, hintLevel: 0, streak: 0 });
+          if (!isSameDay(lastCorrectDateMillis, currentDateMillis)) {//If it is not the same day as you last answered correctly.
+            if (isOneDayLater(lastCorrectDateMillis, currentDateMillis)) {//If it is just one day later
+              await updateAccountStats(documentId, { answerState: 0, hintLevel: 0 });//Set hint state to 0, set answer state to 0
+              setAnswerState(0);
+              setHintLevel(0);
+              setScore(data.score || 0);
+              setStreak(data.streak || 0);
+            } else {//More than one day has passed.
+              await updateAccountStats(documentId, { answerState: 0, hintLevel: 0, streak: 0 });//Reset answer state, hint level, and streak.
+              setAnswerState(0);
+              setHintLevel(0);
+              setStreak(0);
+              setScore(data.score || 0);
             }
+          } else {
+            setHintLevel(data.hintLevel || 0);
+            setAnswerState(data.answerState || 0);
+            setScore(data.score || 0);
+            setStreak(data.streak || 0);
           }
-
-          setHintLevel(data.hintLevel || 0);
-          setAnswerState(data.answerState || 0);
-          setScore(data.score || 0);
-          setStreak(data.streak || 0);
         }
       } else {
         const newDocumentId = await createAccountStats({
@@ -143,8 +150,31 @@ const showHint = async () => {
 };
 
 function isOneDayLater(date1Millis: number, date2Millis: number): boolean {
-  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-  return (date2Millis - date1Millis) === ONE_DAY_MS;
+  const date1 = new Date(date1Millis);
+  const date2 = new Date(date2Millis);
+
+  const day1 = date1.getDate();
+  const month1 = date1.getMonth();
+  const year1 = date1.getFullYear();
+
+  const day2 = date2.getDate();
+  const month2 = date2.getMonth();
+  const year2 = date2.getFullYear();
+
+  // Check if the years are the same
+  if (year1 === year2) {
+      // If the years are the same, check if the months are the same
+      if (month1 === month2) {
+          // If the months are the same, check if the days are consecutive
+          return day2 - day1 === 1;
+      } else {
+          // If the months are different, they must be consecutive and the day of date2 must be the first day of the month
+          return month2 - month1 === 1 && day2 === 1;
+      }
+  } else {
+      // If the years are different, they must be consecutive, the day of date2 must be the first day of the year, and the month of date2 must be January
+      return year2 - year1 === 1 && month2 === 0 && day2 === 1;
+  }
 }
 
 
@@ -156,6 +186,24 @@ function isSameDay(date1Millis: number, date2Millis: number): boolean {
   return date1.getUTCFullYear() === date2.getUTCFullYear() &&
          date1.getUTCMonth() === date2.getUTCMonth() &&
          date1.getUTCDate() === date2.getUTCDate();
+}
+
+function toLocalISOString(date: Date): string {
+  // Extract local date and time components
+  const localYear: number = date.getFullYear();
+  const localMonth: number = date.getMonth() + 1; // Months are 0-based
+  const localDay: number = date.getDate();
+  const localHours: number = date.getHours();
+  const localMinutes: number = date.getMinutes();
+  const localSeconds: number = date.getSeconds();
+  const localMilliseconds: number = date.getMilliseconds();
+
+  // Format the date and time components to match the ISO 8601 format
+  const formattedDate: string = `${localYear}-${localMonth.toString().padStart(2, '0')}-${localDay.toString().padStart(2, '0')}`;
+  const formattedTime: string = `${localHours.toString().padStart(2, '0')}:${localMinutes.toString().padStart(2, '0')}:${localSeconds.toString().padStart(2, '0')}.${localMilliseconds.toString().padStart(3, '0')}`;
+
+  // Combine date and time
+  return `${formattedDate}T${formattedTime}`;
 }
 
 function getUniqueValueForToday() {
@@ -195,7 +243,7 @@ const onAnswerSubmit = async (value: string) => {
           answerState: 1,
           score: newScore,
           streak: newStreak,
-          lastCorrect: new Date().toISOString()
+          lastCorrect: toLocalISOString(new Date())
         });
       } catch (error) {
         console.error('Error updating answer state:', error);
@@ -206,7 +254,7 @@ const onAnswerSubmit = async (value: string) => {
   }
 };
 
-  const loadQuestion = async () => {
+const loadQuestion = async () => {
     try {
       const res = await axios.get(`./api/question_daily?seed=${getUniqueValueForToday()}`);
       console.log(res.data);
