@@ -2,7 +2,9 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import AnswerBar from './components/answerBar';
-import LinkBarItem from './components/linkbarItem';
+import HintBox from './components/hintBox';
+import MobileMenuBar from './components/MobileMenuBar';
+import MenuBar from './components/MenuBar';
 import { db } from '../lib/firebaseConfig';
 import { getAccountStats , updateAccountStats, createAccountStats } from '../utils/firebaseAccountHelpers'
 import { collection, getDocs, updateDoc, getDoc, query, where, doc, addDoc } from "firebase/firestore";
@@ -13,8 +15,7 @@ const day = date.getDate();
 const month = date.toLocaleString('default', { month: 'long' });
 const year = date.getFullYear();
 
-function calculateHeight(originalWidth: number, originalHeight: number): number {
-  const newWidth: number = 250;
+function calculateHeight(originalWidth: number, originalHeight: number, newWidth : number): number {
   const ratio: number = originalHeight / originalWidth;
   const newHeight: number = newWidth * ratio;
   return newHeight;
@@ -26,12 +27,13 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [streak, setStreak] = useState(0);
   const [score, setScore] = useState(0);
+  const [mobile, setMobile] = useState(window.innerWidth < 1000 ? true : false);
   const [question, setQuestion] = useState({
     'answer': 'George V', 
+    'categories': {"category1": "", "category2": "", "category3": ""},
     'details': 
       {'question': 
         'Who was the King of the United Kingdom and Emperor of India from 1910 until his death in 1936?', 
-        'category': 'British History', 
         'hints': 
           {'hint1': 
             "He was born as the second son of the Prince and Princess of Wales and became king-emperor after his father's death.", 
@@ -50,6 +52,14 @@ export default function Home() {
 });
 
 useEffect(()=>{
+
+  const handleResize = () => {
+    setMobile(window.innerWidth < 1000 ? true : false);
+  };
+
+  // Attach the event listener
+  window.addEventListener('resize', handleResize);
+
   const fetchAccountData = async () => {
     const documentId = localStorage.getItem('userDocumentId');
 
@@ -59,7 +69,10 @@ useEffect(()=>{
 
         if (data) {
           const lastCorrectDateMillis = data.lastCorrect ? new Date(data.lastCorrect).getTime() : 0;
-          const currentDateMillis = new Date().getTime();
+          const currentDateMillis = new Date(toLocalISOString(new Date())).getTime();
+
+          console.log("is one day later returns: " + isOneDayLater(lastCorrectDateMillis, currentDateMillis));
+          console.log("is same day returns: " + isSameDay(lastCorrectDateMillis, currentDateMillis));
 
           if (!isSameDay(lastCorrectDateMillis, currentDateMillis)) {//If it is not the same day as you last answered correctly.
             if (isOneDayLater(lastCorrectDateMillis, currentDateMillis)) {//If it is just one day later
@@ -79,7 +92,7 @@ useEffect(()=>{
             setHintLevel(data.hintLevel || 0);
             setAnswerState(data.answerState || 0);
             setScore(data.score || 0);
-            setStreak(data.streak || 0);
+            setStreak(data.streak);
           }
         }
       } else {
@@ -100,27 +113,28 @@ useEffect(()=>{
         const docs = querySnapshot.docs.map((doc) => doc.data());
 
         if (docs.length > 0) {
-          const question = docs[0];
-          setQuestion({
-            answer: question.answer, 
-            details: {
-              question: question.question, 
-              category: question.category, 
-              hints: {
-                hint1: question.hint1, 
-                hint2: question.hint2, 
-                hint3: question.hint3,
-              }, 
-              difficulty: 'medium',
-              funFact: question.fun_fact,
-            }, 
-            img: {
-              source: question.img_src, 
-              height: question.img_h, 
-              width: question.img_w
-            }
-          });
-          setLoading(false);
+          // const question = docs[0];
+          // setQuestion({
+          //   answer: question.answer, 
+          //   details: {
+          //     question: question.question, 
+          //     category: question.category, 
+          //     hints: {
+          //       hint1: question.hint1, 
+          //       hint2: question.hint2, 
+          //       hint3: question.hint3,
+          //     }, 
+          //     difficulty: 'medium',
+          //     funFact: question.fun_fact,
+          //   }, 
+          //   img: {
+          //     source: question.img_src, 
+          //     height: question.img_h, 
+          //     width: question.img_w
+          //   }
+          // });
+          // setLoading(false);
+          loadQuestion();
         } else {
           loadQuestion();
         }
@@ -133,6 +147,11 @@ useEffect(()=>{
   };
 
   fetchAccountData();
+
+  // Cleanup the event listener on component unmount
+  return () => {
+    window.removeEventListener('resize', handleResize);
+  };
 }, [])
 
 const showHint = async () => {
@@ -150,8 +169,8 @@ const showHint = async () => {
 };
 
 function isOneDayLater(date1Millis: number, date2Millis: number): boolean {
-  const date1 = new Date(date1Millis);
-  const date2 = new Date(date2Millis);
+  const date1 = new Date(toLocalISOString(new Date(date1Millis)));
+  const date2 = new Date(toLocalISOString(new Date(date2Millis)));
 
   const day1 = date1.getDate();
   const month1 = date1.getMonth();
@@ -177,15 +196,14 @@ function isOneDayLater(date1Millis: number, date2Millis: number): boolean {
   }
 }
 
-
 function isSameDay(date1Millis: number, date2Millis: number): boolean {
-  const date1 = new Date(date1Millis);
-  const date2 = new Date(date2Millis);
+  const date1 = new Date(toLocalISOString(new Date(date1Millis)));
+  const date2 = new Date(toLocalISOString(new Date(date2Millis)));
 
   // Check if the years, months, and days are the same
-  return date1.getUTCFullYear() === date2.getUTCFullYear() &&
-         date1.getUTCMonth() === date2.getUTCMonth() &&
-         date1.getUTCDate() === date2.getUTCDate();
+  return date1.getFullYear() === date2.getFullYear() &&
+         date1.getMonth() === date2.getMonth() &&
+         date1.getDate() === date2.getDate();
 }
 
 function toLocalISOString(date: Date): string {
@@ -261,32 +279,32 @@ const loadQuestion = async () => {
       setQuestion(res.data);
       setLoading(false);
 
-      try {
-        // Reference to the document
-        const collectionRef = collection(db, "daily-question");
+      // try {
+      //   // Reference to the document
+      //   const collectionRef = collection(db, "daily-question");
     
-        // Data to be inserted
-        const data = {
-          answer: res.data.answer,
-          category: res.data.category.title,
-          date: getUniqueValueForToday(),
-          fun_fact: res.data.details.funFact,
-          hint1: res.data.details.hints.hint1,
-          hint2: res.data.details.hints.hint2,
-          hint3: res.data.details.hints.hint3,
-          hint4: "",
-          img_src: res.data.img.source,
-          img_h: res.data.img.height,
-          img_w: res.data.img.width,
-          question: res.data.details.question
-        };
+      //   // Data to be inserted
+      //   const data = {
+      //     answer: res.data.answer,
+      //     category: res.data.category.title,
+      //     date: getUniqueValueForToday(),
+      //     fun_fact: res.data.details.funFact,
+      //     hint1: res.data.details.hints.hint1,
+      //     hint2: res.data.details.hints.hint2,
+      //     hint3: res.data.details.hints.hint3,
+      //     hint4: "",
+      //     img_src: res.data.img.source,
+      //     img_h: res.data.img.height,
+      //     img_w: res.data.img.width,
+      //     question: res.data.details.question
+      //   };
     
-        // Set the document with the data
-        await addDoc(collectionRef, data);
-        console.log("Document successfully written!");
-      } catch (e) {
-        console.error("Error adding document: ", e);
-      }
+      //   // Set the document with the data
+      //   await addDoc(collectionRef, data);
+      //   console.log("Document successfully written!");
+      // } catch (e) {
+      //   console.error("Error adding document: ", e);
+      // }
     } catch (err) {
       console.error(err);
     }
@@ -294,56 +312,89 @@ const loadQuestion = async () => {
 
   return (
     <main className="container">
-      <div className="center-div">
-      <div style={{display: "flex"}}>
+      <div className="center-div" style={{display: "flex", flexDirection: "row"}}>
+        {!mobile ? (
+          <div style={{flex: 0.25}}>
+            <h3 style={{marginTop: 78}}>DWC</h3>
+            <div className="light-line" style={{width: "75%"}}/>
+            <MenuBar position={0}/>
+          </div>
+        ) : null}
+        <div style={{flex: 1}}>
+        <div style={{display: "flex"}}>
           <h1 className="title">Daily Wiki Challenge</h1>
           <div style={{flex: 1}}/>
-          <p style={{marginTop: 30, marginBottom: 0, whiteSpace: "nowrap"}}><b>⭐:</b> {score} <b>🔥:</b> {streak}</p>
         </div>
         <div className="line"/>
         <div style={{display: "flex"}}>
         <p className="small-text">{`${day} ${month} ${year}`}</p>
-        <p style={{marginBottom: -15, fontSize: 14, marginLeft: 15}}><a href={`/about`} target="_blank">About DWC</a></p>
         <div style={{flex: 1}}/>
-          <LinkBarItem link={"/"} selected={true} text={"Daily Challenge"}/>
-          <LinkBarItem link={"/test_mode"} selected={false} text={"Test Mode (Beta)"}/>
+          <p style={{whiteSpace: "nowrap"}}><b>⭐:</b> {score} <b>🔥:</b> {streak}</p>
         </div>
         <div className="light-line"></div>
-        {loading && <p>Loading Question...</p>}
-        {!loading &&
-        <div className="question-container">
-          <p>{question.details.question}</p>
-          {hintLevel < 3 && <button className="link-button" onClick={showHint}>Hint ({3-hintLevel})</button>}
-          {hintLevel >= 1 && <p><b>Hint 1:</b> {question.details.hints.hint1}</p>}
-          {hintLevel >= 2 && <p><b>Hint 2:</b> {question.details.hints.hint2}</p>}
-          {hintLevel >= 3 && <p><b>Hint 3:</b> {question.details.hints.hint3}</p>}
-          {question.img.source !== null &&
-          <div className="image-container">
-            <Image 
-              src={question.img.source} 
-              alt="Question Image"
-              width={250}
-              height={calculateHeight(question.img.width, question.img.height)}
-            />
-          </div>}
-          <div className="content">
-              {answerState !== 1 && <AnswerBar onAnswerSubmit={onAnswerSubmit}/>}
-              {answerState === -1 && <div style={{display: "flex", flexDirection: "column", alignItems: "center", marginTop: 15}}>
-                <div className="highlighter-incorrect">
-                  <p style={{marginTop: 5, marginBottom: 5}}><b>Try Again.</b></p>
-                </div>
-                </div>}
-              {answerState === 1 && <div style={{display: "flex", flexDirection: "column", alignItems: "center"}}>
-                <div className="highlighter-correct">
-                  <p style={{marginTop: 5, marginBottom: 5}}><b>Correct!</b></p>
-                </div>
-                <p><b>Fun-Fact: </b>{question.details.funFact}</p>
-                <a href={`https://en.wikipedia.org/wiki/${question.answer.replace(/ /g, "_")}`} target="_blank"><p>Read More</p></a>
-                <p>Come back tomorrow for the next daily challenge!</p>
-              </div>}
+        {mobile ? (
+          <div>
+            <MobileMenuBar position={0}/>
+            <div style={{marginTop: 0}} className="light-line"></div>
+          </div>
+        ): null}
+
+          <div style={{ 
+              display: "flex", 
+              flexDirection: mobile ? "column-reverse" : "row", // Default to row direction
+              flexWrap: "wrap", // Ensure items wrap if needed
+            }}>
+              <div style={{ 
+                flex: "0.75", 
+                minWidth: "200px", // Ensure it has some minimum width for visibility
+              }}>
+                {loading ? (
+                  <p style={{marginTop: 40}}>Loading Question...</p>
+                ) : (
+                  <div style={{marginTop: 40}}>
+                    <p>{question.details.question}</p>
+                    {question.img.source !== null &&
+                      <div style={{marginTop: 50, display: "flex", justifyContent: "center"}}>
+                        <Image 
+                          src={question.img.source} 
+                          alt="Question Image"
+                          width={mobile ? 350 : 500}
+                          height={calculateHeight(question.img.width, question.img.height, mobile ? 350 : 500)}
+                        />
+                      </div>}
+                      <div style={{marginTop: 50, display: "flex", flexDirection: "column", alignItems: "center"}}>
+                          {answerState !== 1 && <AnswerBar onAnswerSubmit={onAnswerSubmit}/>}
+                          {answerState == -1 && 
+                            <div style={{marginTop: "25", backgroundColor: "#EB5757", paddingLeft: 5, paddingRight: 5, width: '80%', display: "flex", flexDirection: "column", alignItems: "center"}}>
+                              <p style={{marginTop: 5, marginBottom: 5}}><b>Incorrect</b></p>
+                            </div>}
+                          {answerState == 1 && <div style={{display: "flex", flexDirection: "column", alignItems: "center", width: "100%"}}>
+                            <h3>{question.answer}</h3>
+                            <div style={{marginTop: "25", backgroundColor: "#219653", paddingLeft: 5, paddingRight: 5, width: '80%', display: "flex", flexDirection: "column", alignItems: "center"}}>
+                              <p style={{marginTop: 5, marginBottom: 5}}><b>Correct</b></p>
+                            </div>
+                            <div style={{width: "100%"}}>
+                              <p style={{marginTop: 50}}><b>Fun Fact<br/> </b>{question.details.funFact}</p>
+                              <a href={`https://en.wikipedia.org/wiki/${question.answer.replace(/ /g, "_")}`} target="_blank"><p>Read More</p></a>
+                            </div>
+                            <div style={{display: "flex", width: "100%", justifyContent: "center"}}>
+                                <p><i>Come back tomorrow for the next Daily Wiki Challenge!</i></p>
+                            </div>
+                          </div>}
+                      </div>
+                  </div>
+                )}
+            </div>
+            {!loading ? (
+              <div style={{ 
+                flex: "0.25", 
+                minWidth: "100px", // Ensure it has some minimum width for visibility
+              }}>
+                <HintBox hint1={question.details.hints.hint1} cat1={question.categories.category1} hint2={question.details.hints.hint2} cat2={question.categories.category2} hint3={question.details.hints.hint3} cat3={question.categories.category3}/>
+              </div>
+            ):null}
           </div>
         </div>
-        }
       </div>
     </main>
   );

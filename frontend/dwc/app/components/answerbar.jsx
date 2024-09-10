@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 
 export default function AnswerBar({onAnswerSubmit}) {
@@ -20,34 +22,35 @@ export default function AnswerBar({onAnswerSubmit}) {
 
   return (
     <div style={{ width: "80%", margin: "0 auto" }}>
-      <div style={{ display: "flex", flexDirection: "row" }}>
-      <input 
-        type="text" 
-        value={input} 
-        onChange={(e) => {
-            setInput(e.target.value)
-            setSelected(false);
-        }} 
-        placeholder="Search Articles..."
-        className="input-focus"/>
-        <button 
+    <div style={{ display: 'flex', alignItems: 'center' }}>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', width: '100%'}}>
+        <FontAwesomeIcon
+          icon={faSearch}
           style={{
-            backgroundColor: '#f8f9fa',
-            border: '1px solid #a2a9b1',
-            borderRadius: '2px',
-            padding: '10px 15px',
-            fontSize: '14px',
-            color: '#222',
-            cursor: 'pointer',
-            transition: 'background-color 0.2s ease-in-out',
+            position: 'absolute',
+            left: '10px',
+            fontSize: '18px',
+            color: '#888',
           }}
-          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
-          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-          onClick={()=>onAnswerSubmit(input)}
-        >
-          <b>Submit</b>
-        </button>
+        />
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => {
+            setInput(e.target.value);
+            setSelected(false);
+          }}
+          placeholder="Search Wikipedia"
+          className='input-focus'
+        />
       </div>
+      <button
+        className='button'
+        onClick={() => onAnswerSubmit(input)}
+      >
+        <b>Submit</b>
+      </button>
+    </div>
       {recommendations.length > 0 && input.length > 0 && !selected &&
         <div style={{ 
             borderRadius: "2px",

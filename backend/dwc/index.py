@@ -42,8 +42,8 @@ def removeItemsWithColon(json_array):
     return filtered_json_array
 
 #Generate question endpoint.
-@app.route('/generate/<string:category>/<string:recentArticle>', methods=['GET'])
-def generate(category, recentArticle):
+# @app.route('/generate/<string:category>/<string:recentArticle>', methods=['GET'])
+# def generate(category, recentArticle):
 
     try:
         quizCategory = ""
@@ -69,7 +69,6 @@ def generate(category, recentArticle):
         imgSource = imageData["query"]["pages"][str(article["pageid"])].get("thumbnail", {}).get("source")
         imgHeight = imageData["query"]["pages"][str(article["pageid"])].get("thumbnail", {}).get("height")
         imgWidth = imageData["query"]["pages"][str(article["pageid"])].get("thumbnail", {}).get("width")
-
 
         articleData = getData(article["pageid"])
         data = articleData["query"]["pages"][str(article["pageid"])]["extract"]
@@ -99,13 +98,12 @@ def generate(category, recentArticle):
 
             details = details.choices[0].message.content
 
+            print(details)
 
             if repair_json(details) != "":
                 break
 
         jsonDetails = json.loads(repair_json(details))
-
-
 
         responseDict = {
             "answer": answer,
@@ -138,7 +136,7 @@ def seed_gen(seed):
         startingArtId = list(parents.keys())[0]
         jParCats = parents[startingArtId]["categories"]
 
-        category = random.choice(jParCats)
+        categories = random.sample(jParCats, 3)
         # Navigate to the pageid field
         pageid = next(iter(data["query"]["pages"].values()))["pageid"]
 
@@ -154,20 +152,20 @@ def seed_gen(seed):
         answer = articleData["query"]["pages"][str(pageid)]["title"]
 
         example_json = {
-            "question": "",
-            "funFact": "",
+            "question": "I am a famous scientist known for my work in physics.",
+            "funFact": "Albert Einstein developed the theory of relativity, which revolutionized our understanding of space, time, and energy.",
             "hints": {
-                "hint1": "",
-                "hint2": "",
-                "hint3": "",
+                "hint1": "I was born in Germany in 1879.",
+                "hint2": "My most famous equation is E=mc².",
+                "hint3": "I received the Nobel Prize in Physics in 1921 and my name is often associated with genius."
             }
         }
         
         while True:#GPT question prompt.
-            prompt = "Write a trivia question and three progressively easier hints. The answer to the question MUST clearly be " + answer + " (even if it is a sentence). Do not say the answer in the question or hints. Add the trivia category, and a fun fact. Here is some background info: " + data
+            prompt = "Write a trivia question and three progressively easier hints, where this is the answer " + answer + ". Do not say the answer in the question or hints. Add the trivia category, and a fun fact. Here is some background info: " + data
 
             details = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o",
                 response_format={"type":"json_object"},
                 messages=[
                     {"role":"system", "content": "Provide output in valid JSON and in English. The data schema should be like this: " + json.dumps(example_json)},
@@ -184,12 +182,12 @@ def seed_gen(seed):
 
         responseDict = {
             "answer": answer,
-            "category": category,
+            "categories": {"category1": categories[0]["title"], "category2": categories[1]["title"], "category3": categories[2]["title"]},
             "details": jsonDetails,
             "img": {"source": imgSource, "height": imgHeight, "width": imgWidth}
         }
         
-        #print(responseDict)
+        print(responseDict)
         if (len(jsonDetails) > 0 and (":" not in answer) and jsonDetails["question"] != "" and ("List of" not in answer) and ("Index of" not in answer)):
             return responseDict
         else:

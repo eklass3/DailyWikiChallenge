@@ -92,16 +92,70 @@ p {
 
 .input-focus {
   width: 100%;
-  padding: 10px;
-  font-size: 14px;
-  border-radius: 2px;
+  padding: 9px 10px 9px 35px;
+  font-size: 16px;
+  height: 40px;
+  border-top-left-radius: 5px; /* Adjust the value as needed */
+  border-bottom-left-radius: 5px; /* Adjust the value as needed */
+  border-top-right-radius: 0px; /* Adjust the value as needed */
+  border-bottom-right-radius: 0px; /* Adjust the value as needed */
   font-family: Arial;
+  font-weight: bold;
   border: 1px solid #ccc;
+  border-right: none;
+  box-sizing: border-box; /* Ensure padding is included in width */
 }
 
 .input-focus:focus {
   outline: black;
   box-shadow: 0 0 3px rgb(0, 0, 0);
+}
+
+.input-search {
+  width: 100%;
+  padding: 9px 10px 9px 35px;
+  font-size: 16px;
+  height: 40px;
+  border-top-left-radius: 5px; /* Adjust the value as needed */
+  border-bottom-left-radius: 5px; /* Adjust the value as needed */
+  border-top-right-radius: 5px; /* Adjust the value as needed */
+  border-bottom-right-radius: 5px; /* Adjust the value as needed */
+  font-family: Arial;
+  font-weight: bold;
+  border: 1px solid #ccc;
+  box-sizing: border-box; /* Ensure padding is included in width */
+}
+
+.input-search:focus {
+  outline: black;
+  box-shadow: 0 0 3px rgb(0, 0, 0);
+}
+
+.hoverListItem:hover {
+  background-color: #f8f9fa;
+  border: 1px solid #D0D4D8;
+}
+
+/* styles.css */
+.button {
+  background-color: #f8f9fa;
+  border: 1px solid #a2a9b1;
+  border-top-right-radius: 5px; /* Adjust the value as needed */
+  border-bottom-right-radius: 5px; /* Adjust the value as needed */
+  padding: 10px 15px;
+  font-size: 14px;
+  height: 40px;
+  color: #222;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.button:hover {
+  background-color: #ffffff;
+}
+
+.button:active {
+  background-color: #f8f9fa;
 }
 
 .highlighter-correct {

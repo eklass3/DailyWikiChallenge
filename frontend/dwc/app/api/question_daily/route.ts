@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   console.log("Seed is " + seed);
 
   try {
-    const response = await axios.get(`${remoteURL}/seed_gen/${seed}`);
+    const response = await axios.get(`${localURL}/seed_gen/${seed}`);
     result = response.data;
   } catch (error) {
     console.error(error);
