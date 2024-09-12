@@ -22,34 +22,12 @@ function calculateHeight(originalWidth: number, originalHeight: number, newWidth
 }
 
 export default function Home() {
-  const [hintLevel, setHintLevel] = useState(0);
   const [answerState, setAnswerState] = useState(0); //0: neutral (startup), 1: correct answer, -1: incorrect answer
   const [loading, setLoading] = useState(true);
   const [streak, setStreak] = useState(0);
   const [score, setScore] = useState(0);
   const [mobile, setMobile] = useState(window.innerWidth < 1000 ? true : false);
-  const [question, setQuestion] = useState({
-    'answer': 'George V', 
-    'categories': {"category1": "", "category2": "", "category3": ""},
-    'details': 
-      {'question': 
-        'Who was the King of the United Kingdom and Emperor of India from 1910 until his death in 1936?', 
-        'hints': 
-          {'hint1': 
-            "He was born as the second son of the Prince and Princess of Wales and became king-emperor after his father's death.", 
-            'hint2': 'He was the first monarch of the House of Windsor, which he renamed from the House of Saxe-Coburg and Gotha due to anti-German public sentiment.', 
-            'hint3': 'He suffered from smoking-related health problems during his later reign and was succeeded by his eldest son, Edward VIII, who later abdicated.'
-          }, 
-        'difficulty': 
-        'medium',
-        'funFact': 'George also liked playing Minecraft in his free time. He was a top 10 all-time player of Super-Smash-Mobs on Mineplex.',
-      }, 
-      'img': 
-        { 'source': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/King_George_1923_LCCN2014715558_%28cropped%29.jpg/500px-King_George_1923_LCCN2014715558_%28cropped%29.jpg', 
-          'height': 705, 
-          'width': 500
-        }
-});
+  const [question, setQuestion] = useState<any>();
 
 useEffect(()=>{
 
@@ -78,18 +56,15 @@ useEffect(()=>{
             if (isOneDayLater(lastCorrectDateMillis, currentDateMillis)) {//If it is just one day later
               await updateAccountStats(documentId, { answerState: 0, hintLevel: 0 });//Set hint state to 0, set answer state to 0
               setAnswerState(0);
-              setHintLevel(0);
               setScore(data.score || 0);
               setStreak(data.streak || 0);
             } else {//More than one day has passed.
               await updateAccountStats(documentId, { answerState: 0, hintLevel: 0, streak: 0 });//Reset answer state, hint level, and streak.
               setAnswerState(0);
-              setHintLevel(0);
               setStreak(0);
               setScore(data.score || 0);
             }
           } else {
-            setHintLevel(data.hintLevel || 0);
             setAnswerState(data.answerState || 0);
             setScore(data.score || 0);
             setStreak(data.streak);
@@ -113,28 +88,27 @@ useEffect(()=>{
         const docs = querySnapshot.docs.map((doc) => doc.data());
 
         if (docs.length > 0) {
-          // const question = docs[0];
-          // setQuestion({
-          //   answer: question.answer, 
-          //   details: {
-          //     question: question.question, 
-          //     category: question.category, 
-          //     hints: {
-          //       hint1: question.hint1, 
-          //       hint2: question.hint2, 
-          //       hint3: question.hint3,
-          //     }, 
-          //     difficulty: 'medium',
-          //     funFact: question.fun_fact,
-          //   }, 
-          //   img: {
-          //     source: question.img_src, 
-          //     height: question.img_h, 
-          //     width: question.img_w
-          //   }
-          // });
-          // setLoading(false);
-          loadQuestion();
+          const question = docs[0];
+          setQuestion({
+            answer: question.answer, 
+            categories: {category1: question.category1, category2: question.category2, category3: question.category3}, 
+            details: {
+              question: question.question, 
+              hints: {
+                hint1: question.hint1, 
+                hint2: question.hint2, 
+                hint3: question.hint3,
+              }, 
+              difficulty: 'medium',
+              funFact: question.fun_fact,
+            }, 
+            img: {
+              source: question.img_src, 
+              height: question.img_h, 
+              width: question.img_w
+            }
+          });
+          setLoading(false);
         } else {
           loadQuestion();
         }
@@ -154,19 +128,6 @@ useEffect(()=>{
   };
 }, [])
 
-const showHint = async () => {
-  const documentId = localStorage.getItem('userDocumentId');
-
-  if (documentId) {
-    setHintLevel(hintLevel + 1);
-
-    try {
-      await updateAccountStats(documentId, { hintLevel: hintLevel + 1 });
-    } catch (error) {
-      console.error('Error updating hint level:', error);
-    }
-  }
-};
 
 function isOneDayLater(date1Millis: number, date2Millis: number): boolean {
   const date1 = new Date(toLocalISOString(new Date(date1Millis)));
@@ -233,15 +194,28 @@ function getUniqueValueForToday() {
   return year + month + day;
 }
 
-const scoreCalculator = () => {
-    if (hintLevel === 0)
-      return 5;
-    else if (hintLevel === 1)
-      return 3;
-    else if (hintLevel === 2)
-      return 2;
-    else
-      return 1;
+function scoreCalculator() {
+  // Get the current local time
+  const now = new Date();
+
+  // Create Date objects for the threshold times today
+  const elevenAM = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 11, 0);
+  const fourPM = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 16, 0);
+  const ninePM = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 21, 0);
+
+  let score;
+
+  if (now < elevenAM) {
+    score = 5;
+  } else if (now < fourPM) {
+    score = 3;
+  } else if (now < ninePM) {
+    score = 2;
+  } else {
+    score = 1;
+  }
+
+  return score;
 }
 
 const onAnswerSubmit = async (value: string) => {
@@ -279,36 +253,38 @@ const loadQuestion = async () => {
       setQuestion(res.data);
       setLoading(false);
 
-      // try {
-      //   // Reference to the document
-      //   const collectionRef = collection(db, "daily-question");
+      try {
+        // Reference to the document
+        const collectionRef = collection(db, "daily-question");
     
-      //   // Data to be inserted
-      //   const data = {
-      //     answer: res.data.answer,
-      //     category: res.data.category.title,
-      //     date: getUniqueValueForToday(),
-      //     fun_fact: res.data.details.funFact,
-      //     hint1: res.data.details.hints.hint1,
-      //     hint2: res.data.details.hints.hint2,
-      //     hint3: res.data.details.hints.hint3,
-      //     hint4: "",
-      //     img_src: res.data.img.source,
-      //     img_h: res.data.img.height,
-      //     img_w: res.data.img.width,
-      //     question: res.data.details.question
-      //   };
+        // Data to be inserted
+        const data = {
+          answer: res.data.answer,
+          category: res.data.category.title,
+          date: getUniqueValueForToday(),
+          fun_fact: res.data.details.funFact,
+          hint1: res.data.details.hints.hint1,
+          hint2: res.data.details.hints.hint2,
+          hint3: res.data.details.hints.hint3,
+          category1: res.data.categories.category1,
+          category2: res.data.categories.category2,
+          category3: res.data.categoryies.category3,
+          img_src: res.data.img.source,
+          img_h: res.data.img.height,
+          img_w: res.data.img.width,
+          question: res.data.details.question
+        };
     
-      //   // Set the document with the data
-      //   await addDoc(collectionRef, data);
-      //   console.log("Document successfully written!");
-      // } catch (e) {
-      //   console.error("Error adding document: ", e);
-      // }
+        // Set the document with the data
+        await addDoc(collectionRef, data);
+        console.log("Document successfully written!");
+      } catch (e) {
+        console.error("Error adding document: ", e);
+      }
     } catch (err) {
       console.error(err);
     }
-  };
+};
 
   return (
     <main className="container">
@@ -365,12 +341,12 @@ const loadQuestion = async () => {
                       <div style={{marginTop: 50, display: "flex", flexDirection: "column", alignItems: "center"}}>
                           {answerState !== 1 && <AnswerBar onAnswerSubmit={onAnswerSubmit}/>}
                           {answerState == -1 && 
-                            <div style={{marginTop: "25", backgroundColor: "#EB5757", paddingLeft: 5, paddingRight: 5, width: '80%', display: "flex", flexDirection: "column", alignItems: "center"}}>
+                            <div style={{marginTop: 25, backgroundColor: "#EB5757", paddingLeft: 5, paddingRight: 5, width: '80%', display: "flex", flexDirection: "column", alignItems: "center"}}>
                               <p style={{marginTop: 5, marginBottom: 5}}><b>Incorrect</b></p>
                             </div>}
                           {answerState == 1 && <div style={{display: "flex", flexDirection: "column", alignItems: "center", width: "100%"}}>
                             <h3>{question.answer}</h3>
-                            <div style={{marginTop: "25", backgroundColor: "#219653", paddingLeft: 5, paddingRight: 5, width: '80%', display: "flex", flexDirection: "column", alignItems: "center"}}>
+                            <div style={{backgroundColor: "#219653", paddingLeft: 5, paddingRight: 5, width: '80%', display: "flex", flexDirection: "column", alignItems: "center"}}>
                               <p style={{marginTop: 5, marginBottom: 5}}><b>Correct</b></p>
                             </div>
                             <div style={{width: "100%"}}>
@@ -390,7 +366,7 @@ const loadQuestion = async () => {
                 flex: "0.25", 
                 minWidth: "100px", // Ensure it has some minimum width for visibility
               }}>
-                <HintBox hint1={question.details.hints.hint1} cat1={question.categories.category1} hint2={question.details.hints.hint2} cat2={question.categories.category2} hint3={question.details.hints.hint3} cat3={question.categories.category3}/>
+                <HintBox countDown={true} hint1={question.details.hints.hint1} cat1={question.categories.category1} hint2={question.details.hints.hint2} cat2={question.categories.category2} hint3={question.details.hints.hint3} cat3={question.categories.category3}/>
               </div>
             ):null}
           </div>

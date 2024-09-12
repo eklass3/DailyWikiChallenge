@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import LinkBarItem from './linkbarItem';
 
-export default function ChallengeItem({item}) {
+export default function ChallengeItem({item, onSelect}) {
 
     function formatDate(inputDate) {
         // Validate input
@@ -46,14 +46,14 @@ export default function ChallengeItem({item}) {
 
     if (item.date !== getUniqueValueForToday()) {
         return(
-        <div class="hoverListItem">
+        <div class="hoverListItem" onClick={()=>onSelect(item)} style={{cursor: 'pointer'}}>
         <div style={{display: "flex", alignItems: "center"}}>
                 <div style={{flex: 1}}>
                     <h1 style={{fontSize: 18}}>{formatDate(item.date)} • <a href={`https://en.wikipedia.org/wiki/${item.answer.replace(/ /g, "_")}`} style={{textDecoration: 'none'}} target="_blank">{item.answer}</a></h1>
-                    {item.category !== "undefined" ? (
+                    {item.category !== undefined ? (
                         <p style={{fontSize: 14, color: "#828282"}}>Category: <a href={`https://en.wikipedia.org/wiki/${item.category.replace(/ /g, "_")}`} target="_blank">{item.category.replace("Category:", "")}</a></p>
                     ):(
-                        <p style={{fontSize: 14, color: "#828282"}}>Categories: <a href={`https://en.wikipedia.org/wiki/${item.categories.category1.replace(/ /g, "_")}`} target="_blank">{item.categories.category1.replace("Category:", "")}</a>, <a href={`https://en.wikipedia.org/wiki/${item.categories.category2.replace(/ /g, "_")}`} target="_blank">{item.categories.category2.replace("Category:", "")}</a>, <a href={`https://en.wikipedia.org/wiki/${item.categories.category3.replace(/ /g, "_")}`} target="_blank">{item.categories.category3.replace("Category:", "")}</a></p>
+                        <p style={{fontSize: 14, color: "#828282"}}>Categories: <a href={`https://en.wikipedia.org/wiki/${item.category1.replace(/ /g, "_")}`} target="_blank">{item.category1.replace("Category:", "")}</a>, <a href={`https://en.wikipedia.org/wiki/${item.category2.replace(/ /g, "_")}`} target="_blank">{item.category2.replace("Category:", "")}</a>, <a href={`https://en.wikipedia.org/wiki/${item.category3.replace(/ /g, "_")}`} target="_blank">{item.category3.replace("Category:", "")}</a></p>
                     )}
             </div>
             {item.img_src !== null ? (

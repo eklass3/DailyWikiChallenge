@@ -10,7 +10,7 @@ const isPastTime = (targetHour, targetMinute) => {
 };
   
 
-export default function HintBox({hint1, cat1, hint2, cat2, hint3, cat3}) {
+export default function HintBox({hint1, cat1, hint2, cat2, hint3, cat3, countDown}) {
 
     const [isPast11AM, setIsPast11AM] = useState(isPastTime(11, 0));
     const [isPast4PM, setIsPast4PM] = useState(isPastTime(16, 0));
@@ -28,7 +28,7 @@ export default function HintBox({hint1, cat1, hint2, cat2, hint3, cat3}) {
             <div style={{marginTop: 15, marginBottom: 15, marginLeft: 10, marginRight: 10, display: "flex", justifyContent: "center", backgroundColor: "#D9D9D9"}}>
                 <h3 style={{marginTop: 5, marginBottom: 5}}>Hint 1</h3>
             </div>
-                {isPast11AM ? (
+                {isPast11AM || !countDown ? (
                 <div>
                 <p style={{marginLeft: 10, marginRight: 10}}>{hint1}</p>
                  <div style={{display: "flex", marginTop: 15, marginLeft: 10, marginRight: 10}}>
@@ -44,7 +44,7 @@ export default function HintBox({hint1, cat1, hint2, cat2, hint3, cat3}) {
             <div style={{marginTop: 15, marginBottom: 15, marginLeft: 10, marginRight: 10, display: "flex", justifyContent: "center", backgroundColor: "#D9D9D9"}}>
                 <h3 style={{marginTop: 5, marginBottom: 5}}>Hint 2</h3>
             </div>
-                {isPast4PM ? (
+                {isPast4PM || !countDown ? (
                     <div>
                     <p style={{marginLeft: 10, marginRight: 10}}>{hint2}</p>
                     <div style={{display: "flex", marginTop: 15, marginLeft: 10, marginRight: 10}}>
@@ -60,7 +60,7 @@ export default function HintBox({hint1, cat1, hint2, cat2, hint3, cat3}) {
             <div style={{marginTop: 15, marginBottom: 15, marginLeft: 10, marginRight: 10, display: "flex", justifyContent: "center", backgroundColor: "#D9D9D9"}}>
                 <h3 style={{marginTop: 5, marginBottom: 5}}>Hint 3</h3>
             </div>
-            {isPast9PM ? (
+            {isPast9PM || !countDown ? (
                     <div>
                     <p style={{marginLeft: 10, marginRight: 10}}>{hint3}</p>
                     <div style={{display: "flex", marginTop: 15, marginLeft: 10, marginRight: 10}}>

@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 
-export default function SearchBar({list, onSearchFilter}) {
+export default function SearchBar({list, onSearch, onSearchFilter}) {
   const [input, setInput] = useState('');
 
   useEffect(() => {
@@ -11,6 +11,10 @@ export default function SearchBar({list, onSearchFilter}) {
         
     }
   }, [input]);
+
+  function filterList(search) {
+      onSearchFilter(list.filter(item => item.answer.includes(search)));
+  }
 
   return (
     <div style={{ width: "100%", margin: "0 auto" }}>
@@ -30,7 +34,9 @@ export default function SearchBar({list, onSearchFilter}) {
           value={input}
           onChange={(e) => {
             setInput(e.target.value);
-            setSelected(false);
+            filterList(e.target.value);
+            
+            onSearch(e.target.value.length > 0);
           }}
           placeholder="Search"
           className='input-search'
