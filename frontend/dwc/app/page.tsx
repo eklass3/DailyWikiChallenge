@@ -26,7 +26,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [streak, setStreak] = useState(0);
   const [score, setScore] = useState(0);
-  const [mobile, setMobile] = useState(window.innerWidth < 1000 ? true : false);
+  const [mobile, setMobile] = useState<any>(null);
   const [question, setQuestion] = useState<any>();
 
 useEffect(()=>{
@@ -37,6 +37,7 @@ useEffect(()=>{
 
   // Attach the event listener
   window.addEventListener('resize', handleResize);
+  setMobile(window.innerWidth < 1000 ? true : false);
 
   const fetchAccountData = async () => {
     const documentId = localStorage.getItem('userDocumentId');
@@ -260,7 +261,6 @@ const loadQuestion = async () => {
         // Data to be inserted
         const data = {
           answer: res.data.answer,
-          category: res.data.category.title,
           date: getUniqueValueForToday(),
           fun_fact: res.data.details.funFact,
           hint1: res.data.details.hints.hint1,
@@ -268,7 +268,7 @@ const loadQuestion = async () => {
           hint3: res.data.details.hints.hint3,
           category1: res.data.categories.category1,
           category2: res.data.categories.category2,
-          category3: res.data.categoryies.category3,
+          category3: res.data.categories.category3,
           img_src: res.data.img.source,
           img_h: res.data.img.height,
           img_w: res.data.img.width,
@@ -286,6 +286,7 @@ const loadQuestion = async () => {
     }
 };
 
+if (mobile !== null) {
   return (
     <main className="container">
       <div className="center-div" style={{display: "flex", flexDirection: "row"}}>
@@ -374,4 +375,7 @@ const loadQuestion = async () => {
       </div>
     </main>
   );
+} else {
+  return(<div/>)
+}
 }

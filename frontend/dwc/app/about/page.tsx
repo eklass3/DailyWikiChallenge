@@ -4,11 +4,11 @@ import { useState , useEffect } from "react";
 import MobileMenuBar from '../components/MobileMenuBar';
 import MenuBar from '../components/MenuBar';
 
-const VERSION_CODE = "Beta 0.0.3"
+const VERSION_CODE = "Beta 0.0.4"
 
 export default function Home() {
 
-    const [mobile, setMobile] = useState(window.innerWidth < 1000 ? true : false);
+    const [mobile, setMobile] = useState<any>(null);
 
     useEffect(()=>{
 
@@ -18,12 +18,14 @@ export default function Home() {
       
         // Attach the event listener
         window.addEventListener('resize', handleResize);
+        setMobile(window.innerWidth < 1000 ? true : false);
       // Cleanup the event listener on component unmount
     return () => {
         window.removeEventListener('resize', handleResize);
     };
     }, [])
 
+    if (mobile !== null) {
     return(
     <main className="container">
         <div className="center-div" style={{display: "flex", flexDirection: "row"}}>
@@ -49,7 +51,6 @@ export default function Home() {
 
             <div style={{ 
                 display: "flex", 
-                flexDirection: mobile ? "column-reverse" : "row", // Default to row direction
                 flexWrap: "wrap", // Ensure items wrap if needed
                 }}>
                     <p style={{maxWidth: 1000, lineHeight: 1.5}}>Daily Wiki Challenge is a ML driven trivia game based on the vast amount of public data available through Wikipedia. The goal of the game is to determine what article the question is referencing. The answer will always be a title of a Wikipedia article. The objective of this game is to have a new and fun way to learn from Wikipedia.</p>
@@ -64,4 +65,7 @@ export default function Home() {
         </div>
         </main>
     )
+    } else {
+        return (<div/>)
+    }
 }

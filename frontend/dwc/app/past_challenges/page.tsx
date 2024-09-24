@@ -30,7 +30,7 @@ const StyledDatePicker = styled(DatePicker)(({ theme }) => ({
 
 export default function Home() {
 
-    const [mobile, setMobile] = useState(window.innerWidth < 1000 ? true : false);
+    const [mobile, setMobile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [challengeList, setChallengeList] = useState<{ id: string }[]>([]);
     const [searching, setSearching] = useState(false);
@@ -44,7 +44,7 @@ export default function Home() {
       
         // Attach the event listener
         window.addEventListener('resize', handleResize);
-
+        setMobile(window.innerWidth < 1000 ? true : false);
 
         const fetchChallengeData = async () => {
             try {
@@ -116,65 +116,69 @@ export default function Home() {
     }
     
 
-    return(
-    <main className="container">
-        <div className="center-div" style={{display: "flex", flexDirection: "row"}}>
-            {!mobile ? (
-            <div style={{flex: 0.25}}>
-                <h3 style={{marginTop: 78}}>DWC</h3>
-                <div className="light-line" style={{width: "75%"}}/>
-                <MenuBar position={2}/>
-                {!loading && !searching && <DateSelector list={staticChallengeList} onListFilter={(filteredList: any)=>{updateChallengeList(filteredList); setSelectedChallenge({});}}/>}
-            </div>
-            ) : null}
-            <div style={{flex: 1}}>
-            <div style={{display: "flex"}}>
-            <h1 className="title">Daily Wiki Challenge</h1>
-            <div style={{flex: 1}}/>
-            </div>
-            <div className="line"/>
-            {Object.keys(selectedChallenge).length > 0 && <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
-                
-                    <p className="small-text">Historic challenge from <i>{formatDate(selectedChallenge.date)}</i></p>
-                    <div style={{marginTop: -3}} className="light-line"/>
-                </div>}
-            {mobile ? (
-            <div>
-                <MobileMenuBar position={2}/>
-                <div style={{marginTop: 0}} className="light-line"></div>
-            </div>
-            ): null}
+    if (mobile !== null) {
+        return(
+        <main className="container">
+            <div className="center-div" style={{display: "flex", flexDirection: "row"}}>
+                {!mobile ? (
+                <div style={{flex: 0.25}}>
+                    <h3 style={{marginTop: 78}}>DWC</h3>
+                    <div className="light-line" style={{width: "75%"}}/>
+                    <MenuBar position={2}/>
+                    {!loading && !searching && <DateSelector list={staticChallengeList} onListFilter={(filteredList: any)=>{updateChallengeList(filteredList); setSelectedChallenge({});}}/>}
+                </div>
+                ) : null}
+                <div style={{flex: 1}}>
+                <div style={{display: "flex"}}>
+                <h1 className="title">Daily Wiki Challenge</h1>
+                <div style={{flex: 1}}/>
+                </div>
+                <div className="line"/>
+                {Object.keys(selectedChallenge).length > 0 && <div style={{display: "flex", flexDirection: "column", justifyContent: "center"}}>
+                    
+                        <p className="small-text">Historic challenge from <i>{formatDate(selectedChallenge.date)}</i></p>
+                        <div style={{marginTop: -3}} className="light-line"/>
+                    </div>}
+                {mobile ? (
+                <div>
+                    <MobileMenuBar position={2}/>
+                    <div style={{marginTop: 0}} className="light-line"></div>
+                </div>
+                ): null}
 
-            {Object.keys(selectedChallenge).length > 0 ? (
-                  <PastChallenge challenge={selectedChallenge} mobile={mobile} />
-            ) : (
-            <div>
-                {loading ? (
-                    <p>Loading...</p>
+                {Object.keys(selectedChallenge).length > 0 ? (
+                    <PastChallenge challenge={selectedChallenge} mobile={mobile} />
                 ) : (
-                    <div style={{marginTop: 15}}>
-                        <div style={{display: 'flex', flexDirection: 'row'}}>
-                            <div style={{flex: !mobile ? 1 : 0.6}}>
-                            <SearchBar list={staticChallengeList} onSearch={(search: boolean)=>setSearching(search)} onSearchFilter={(filteredList: any)=>{setChallengeList(filteredList)}}/>
-                            </div>
-                            {mobile && <div style={{flex: 0.4}}>
-                            <LocalizationProvider dateAdapter={AdapterDayjs}>
-                                <StyledDatePicker onAccept={(value: any, c) => filterDays(value.$D, (value.$M+1), value.$y)}/>
-                            </LocalizationProvider>
-                            </div>}
-                       </div>
-                       {challengeList.length > 0 ? challengeList.map((item, i) => (
-                            <ChallengeItem key={i} item={item} onSelect={(challenge: any)=>setSelectedChallenge(challenge)} />
-                        )) : (
-                            <p>No results</p>
-                        )}
+                <div>
+                    {loading ? (
+                        <p>Loading...</p>
+                    ) : (
+                        <div style={{marginTop: 15}}>
+                            <div style={{display: 'flex', flexDirection: 'row'}}>
+                                <div style={{flex: !mobile ? 1 : 0.6}}>
+                                <SearchBar list={staticChallengeList} onSearch={(search: boolean)=>setSearching(search)} onSearchFilter={(filteredList: any)=>{setChallengeList(filteredList)}}/>
+                                </div>
+                                {mobile && <div style={{flex: 0.4}}>
+                                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                    <StyledDatePicker onAccept={(value: any, c) => filterDays(value.$D, (value.$M+1), value.$y)}/>
+                                </LocalizationProvider>
+                                </div>}
+                        </div>
+                        {challengeList.length > 0 ? challengeList.map((item, i) => (
+                                <ChallengeItem key={i} item={item} onSelect={(challenge: any)=>setSelectedChallenge(challenge)} />
+                            )) : (
+                                <p>No results</p>
+                            )}
+                        </div>
+                    )}
                     </div>
+                
                 )}
                 </div>
-            
-            )}
             </div>
-        </div>
-        </main>
-    )
+            </main>
+        )
+    } else {
+        <div/>
+    }
 }

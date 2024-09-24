@@ -24,24 +24,24 @@ const calculateTimeRemaining = (targetTime) => {
   return { hours, minutes, seconds };
 };
 
-const Countdown = ({ onCountdownComplete }) => {
+const Countdown = ({ target, onCountdownComplete }) => {
   const [remainingTime, setRemainingTime] = useState({ hours: 0, minutes: 0, seconds: 0 });
   
   useEffect(() => {
     const updateCountdown = () => {
       // Find the next target time
-      const now = new Date();
-      let nextTargetTime = targetTimes.find(time => {
-        const [targetHour] = time.split(':').map(Number);
-        return now.getHours() < targetHour || (now.getHours() === targetHour && now.getMinutes() < Number(time.split(':')[1]));
-      });
+      // const now = new Date();
+      // let nextTargetTime = targetTimes.find(time => {
+      //   const [targetHour] = time.split(':').map(Number);
+      //   return now.getHours() < targetHour || (now.getHours() === targetHour && now.getMinutes() < Number(time.split(':')[1]));
+      // });
 
-      // If no next target time is found, use the first target time for the next day
-      if (!nextTargetTime) {
-        nextTargetTime = targetTimes[0];
-      }
+      // // If no next target time is found, use the first target time for the next day
+      // if (!nextTargetTime) {
+      //   nextTargetTime = targetTimes[0];
+      // }
 
-      const timeRemaining = calculateTimeRemaining(nextTargetTime);
+      const timeRemaining = calculateTimeRemaining(target);
       setRemainingTime(timeRemaining);
 
       // Check if the countdown has reached zero
@@ -58,7 +58,7 @@ const Countdown = ({ onCountdownComplete }) => {
 
   return (
     <div>
-      <p>⏱️ Hint in <b>{`${remainingTime.hours}h ${remainingTime.minutes}m ${remainingTime.seconds}s`}</b></p>
+      <p>⏱️ Next Hint in <b>{`${remainingTime.hours}h ${remainingTime.minutes}m ${remainingTime.seconds}s`}</b></p>
     </div>
   );
 };

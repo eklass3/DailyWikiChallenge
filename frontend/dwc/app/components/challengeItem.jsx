@@ -44,7 +44,11 @@ export default function ChallengeItem({item, onSelect}) {
         return year + month + day;
       }
 
-    if (item.date !== getUniqueValueForToday()) {
+    function isCurrentDateMoreRecent(dateString) {
+        return Number(dateString) < Number(getUniqueValueForToday());
+    }
+
+    if (isCurrentDateMoreRecent(item.date)) {
         return(
         <div class="hoverListItem" onClick={()=>onSelect(item)} style={{cursor: 'pointer'}}>
         <div style={{display: "flex", alignItems: "center"}}>

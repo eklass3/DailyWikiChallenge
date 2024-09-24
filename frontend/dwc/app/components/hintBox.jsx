@@ -38,7 +38,7 @@ export default function HintBox({hint1, cat1, hint2, cat2, hint3, cat3, countDow
                 </div>
                 ) : (
                     <div style={{marginLeft: 10, marginRight: 10, display: "flex", justifyContent: "center"}}>
-                        <Countdown/>
+                        <Countdown target={'11:00'} onCountdownComplete={handleCountdownComplete}/>
                     </div>
                 )}
             <div style={{marginTop: 15, marginBottom: 15, marginLeft: 10, marginRight: 10, display: "flex", justifyContent: "center", backgroundColor: "#D9D9D9"}}>
@@ -54,7 +54,7 @@ export default function HintBox({hint1, cat1, hint2, cat2, hint3, cat3, countDow
                     </div>
                     ) : (
                         <div style={{marginLeft: 10, marginRight: 10, display: "flex", justifyContent: "center"}}>
-                            <Countdown/>
+                            <Countdown target={'16:00'} onCountdownComplete={handleCountdownComplete}/>
                         </div>
                     )}
             <div style={{marginTop: 15, marginBottom: 15, marginLeft: 10, marginRight: 10, display: "flex", justifyContent: "center", backgroundColor: "#D9D9D9"}}>
@@ -70,7 +70,7 @@ export default function HintBox({hint1, cat1, hint2, cat2, hint3, cat3, countDow
                     </div>
                     ) : (
                         <div style={{marginLeft: 10, marginRight: 10, display: "flex", justifyContent: "center"}}>
-                            <Countdown onCountdownComplete={handleCountdownComplete}/>
+                            <Countdown target={'21:00'} onCountdownComplete={handleCountdownComplete}/>
                         </div>
                     )}
             </div>
