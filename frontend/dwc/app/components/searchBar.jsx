@@ -13,7 +13,10 @@ export default function SearchBar({list, onSearch, onSearchFilter}) {
   }, [input]);
 
   function filterList(search) {
+    if (search.length > 0)
       onSearchFilter(list.filter(item => item.answer.toLowerCase().includes(search.toLowerCase())));
+    else
+      onSearchFilter(list.slice(0, 31));
   }
 
   return (

@@ -10,7 +10,7 @@ import PastChallenge from '../components/pastChallenge';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { DocumentData, CollectionReference, collection, getDocs, orderBy, query } from "firebase/firestore";
+import { DocumentData, CollectionReference, collection, getDocs, orderBy, limit, query } from "firebase/firestore";
 import { db } from '../../lib/firebaseConfig';
 import { styled } from '@mui/material/styles';
 
@@ -55,10 +55,17 @@ export default function Home() {
                 // Map document data to an array
                 const docs = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
-                if (docs.length > 0) {
-                    console.log(docs);
-                    setChallengeList(docs);
-                    staticChallengeList = docs;
+                // Get today's date in YYYYMMDD format
+                const today = new Date();
+                const todayString = today.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+
+                // Filter out documents with a future date
+                const validDocs = docs.filter((doc:any) => doc.date < todayString);
+
+                if (validDocs.length > 0) {
+                    console.log(validDocs);
+                    setChallengeList(validDocs.slice(0, 31)); // Set challengeList to the first 15 valid documents
+                    staticChallengeList = validDocs; // Save all valid documents to static variable
                 }
                 setLoading(false);
             } catch (error) {
