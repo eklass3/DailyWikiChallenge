@@ -2,7 +2,7 @@ import axios from 'axios';
 import { NextResponse, NextRequest } from 'next/server';
 
 const localURL = "http://localhost:5000"
-const remoteURL = "https://daily-wiki-challenge-image-ov6nxn2mva-uc.a.run.app"
+const remoteURL = process.env.REMOTE_API_ENDPOINT
 
 export async function GET(req: NextRequest) {
   let result;

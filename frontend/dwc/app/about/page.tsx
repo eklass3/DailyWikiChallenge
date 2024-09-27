@@ -4,7 +4,7 @@ import { useState , useEffect } from "react";
 import MobileMenuBar from '../components/MobileMenuBar';
 import MenuBar from '../components/MenuBar';
 
-const VERSION_CODE = "Beta 0.0.4"
+const VERSION_CODE = "Beta 0.0.5"
 
 export default function Home() {
 
