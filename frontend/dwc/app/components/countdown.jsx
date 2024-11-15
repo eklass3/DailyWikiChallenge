@@ -29,17 +29,6 @@ const Countdown = ({ target, onCountdownComplete }) => {
   
   useEffect(() => {
     const updateCountdown = () => {
-      // Find the next target time
-      // const now = new Date();
-      // let nextTargetTime = targetTimes.find(time => {
-      //   const [targetHour] = time.split(':').map(Number);
-      //   return now.getHours() < targetHour || (now.getHours() === targetHour && now.getMinutes() < Number(time.split(':')[1]));
-      // });
-
-      // // If no next target time is found, use the first target time for the next day
-      // if (!nextTargetTime) {
-      //   nextTargetTime = targetTimes[0];
-      // }
 
       const timeRemaining = calculateTimeRemaining(target);
       setRemainingTime(timeRemaining);
