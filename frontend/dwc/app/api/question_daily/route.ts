@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { NextResponse, NextRequest } from 'next/server';
 
-const localURL = "http://localhost:5000"
+const localURL = "http://localhost:8080"
 const remoteURL = process.env.REMOTE_API_ENDPOINT
 
 export async function GET(req: NextRequest) {

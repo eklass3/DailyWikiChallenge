@@ -6,7 +6,15 @@ export async function GET(req: NextRequest) {
   const searchParam = req.nextUrl.searchParams.get('search');
 
   try {
-    const response = await axios.get(`https://en.wikipedia.org/w/api.php?action=query&format=json&list=search&utf8=1&formatversion=1&srsearch=${searchParam}&srqiprofile=classic&srlimit=5`);
+    const response = await axios.get(
+      `https://en.wikipedia.org/w/api.php?action=query&format=json&list=search&utf8=1&formatversion=1&srsearch=${searchParam}&srqiprofile=classic&srlimit=5`,
+      {
+        headers: {
+          'User-Agent': 'eaklassen8' // <-- Add your app info
+        }
+      }
+    );
+
     result = response.data;
   } catch (error) {
     console.error(error);

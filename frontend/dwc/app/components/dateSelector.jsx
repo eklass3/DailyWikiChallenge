@@ -21,54 +21,50 @@ export default function DateSelector({ list, onListFilter }) {
   }
 
   function groupDatesByDayMonthYear(arr) {
-    const result = [];
+  const result = [];
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
 
-    // Array to map month numbers to month names
-    const monthNames = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-    ];
-  
-    arr.forEach(date => {
-      if (date && date.length === 8 && date !== getUniqueValueForToday()) { // Ensure date is in YYYYMMDD format
-        const year = date.slice(0, 4);
-        const month = date.slice(4, 6);
-        const day = parseInt(date.slice(6, 8), 10); // Convert day to number
-  
-        // Find or create the year object
-        let yearNode = result.find(item => item.id === parseInt(year, 10));
-        if (!yearNode) {
-          yearNode = {
-            id: parseInt(year, 10),
-            name: year,
-            children: []
-          };
-          result.push(yearNode);
-        }
-  
-        // Find or create the month object
-        let monthNode = yearNode.children.find(item => item.id === month);
-        if (!monthNode) {
+  arr.forEach(date => {
+    if (date && date.length === 8 && date !== getUniqueValueForToday()) {
+      const year = date.slice(0, 4);
+      const month = date.slice(4, 6);
+      const day = parseInt(date.slice(6, 8), 10);
+
+      // Year node
+      let yearNode = result.find(item => item.id === year);
+      if (!yearNode) {
+        yearNode = { id: year, name: year, children: [] };
+        result.push(yearNode);
+      }
+
+      // Month node
+      let monthNode = yearNode.children.find(item => item.id === `${year}-${month}`);
+      if (!monthNode) {
         monthNode = {
-            id: month,
-            name: monthNames[month - 1], // Get the month name
-            children: []
+          id: `${year}-${month}`, // unique
+          name: monthNames[parseInt(month, 10) - 1],
+          children: []
         };
         yearNode.children.push(monthNode);
-        }
-  
-        // Add the day if it's not already present
-        if (!monthNode.children.find(item => item.id === parseInt(year + month + String(day).padStart(2, '0'), 10))) {
-          monthNode.children.push({
-            id: parseInt(year + month + String(day).padStart(2, '0'), 10),
-            name: String(day).padStart(2, '0')
-          });
-        }
       }
-    });
-  
-    return result;
-  }
+
+      // Day node
+      const dayId = `${year}-${month}-${String(day).padStart(2, '0')}`;
+      if (!monthNode.children.find(item => item.id === dayId)) {
+        monthNode.children.push({
+          id: dayId,
+          name: String(day).padStart(2, '0')
+        });
+      }
+    }
+  });
+
+  return result;
+}
+
 
   function filterByDate(dateValue) {
 
